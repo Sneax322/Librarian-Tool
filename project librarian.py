@@ -118,10 +118,10 @@ class Librarian(Staff):
     def remove_assistant(self, username):
        librarian.show_assistants_info()
        username = input("Enter the username of the assistant to remove: ")
-         with open('assistant1.csv', mode='r', newline='') as file:
+       with open('assistant1.csv', mode='r', newline='') as file:
             reader = csv.DictReader(file)
             assistants = list(reader)
-        with open('assistant1.csv', mode='w', newline='') as file:
+       with open('assistant1.csv', mode='w', newline='') as file:
             fieldnames = ['name', 'age', 'username', 'password', 'library_number', 'object']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
@@ -218,7 +218,7 @@ class Librarian(Staff):
                 print(f"Name: {patron['name']}, Age: {patron['age']}, Library Number: {patron['library_number']}, Fines: {patron['fines']}, Borrowed Books: {patron['borrowed_books']}, Days Overdue: {patron['days_overdue']}, Max Books Allowed: {patron['max_books_allowed']}, Max Days Allowed: {patron['max_days_allowed']}")
 
     def edit_patron_info(self):
-            
+      pass      
 
            
     
