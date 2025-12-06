@@ -1,17 +1,27 @@
+import datetime
 import os
 import random
 import csv
+import json
 if not os.path.exists('patron1.csv') or os.path.getsize('patron1.csv') == 0:
     with open('patron1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([
             'name', 'age', 'library_number', 'fines', 'borrowed_books',
             'days_overdue', 'max_books_allowed', 'max_days_allowed', 'object'
-        ])
+        ])  
 if not os.path.exists('assistant1.csv') or os.path.getsize('assistant1.csv') == 0:
     with open('assistant1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
+if not os.path.exists('librarian1.csv') or os.path.getsize('librarian1.csv') == 0:
+    with open('librarian1.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
+
+
+current_user=None
+current_client=None
 class Book:
     def __init__(self, title, authors, average_rating, isbn, isbn13, language_code, num_pages, ratings_count, text_reviews_count, publication_date, publisher):
         self.title = title
@@ -28,7 +38,7 @@ class Book:
 
 books = []
 
-with open('books.csv', mode='r', encoding='utf-8') as file:
+with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
     reader = csv.DictReader(file)
     for row in reader:
         # Strip whitespace from column names and handle None values
@@ -88,6 +98,7 @@ class Staff(Person):
     def calculate_fines(self,patron):
         pass
     def lend_book(self):
+        
         pass
     def receive_book(self,patron):
         pass
@@ -98,7 +109,160 @@ class Staff(Person):
 class Librarian(Staff):
     def __repr__(self):
         return f'Librarian({self.name}, {self.age}, {self.username})'
-    def add_assistant(): #DONE
+    @classmethod
+    def add_librarian(cls):#DONE
+        name = input("Enter librarian's name: ")
+        age = int(input("Enter librarian's age: "))
+        while True:
+            username = input("Enter librarian's username: ")
+            with open('librarian1.csv', mode='r', newline='') as file:
+                reader = csv.DictReader(file)
+                if any(row['username'] == username for row in reader):
+                    print("Username already exists. Please choose a different username.\n")
+                else:
+                    break
+        password = input("Enter librarian's password: ")
+        new_librarian = Librarian(name, age, username, password)
+        with open('librarian1.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([name, age, username, password])
+    def edit_book_status(self):
+        choice=int(input("Enter choice: "))
+        if choice==1 or choice==2 or choice==3:
+            user=input( "Enter the library number of the patron you are transacting with." )
+            current_client= None
+            with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
+                preader = csv.DictReader(pfile)
+                for patron in preader:
+                    try:
+                        if int(patron.get('library_number', -1)) == int(user):
+                            current_client=patron
+                            break
+                    except ValueError:
+                        continue
+        if choice==1:
+            current_client.book
+            #i want current client to be patron object
+            #like current_client= is the patron object that matches the library number
+        
+        with open('books123.updated.csv', mode='r', newline='', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            books = list(reader)            
+        with open('books123.updated.csv', mode='w', newline='', encoding='utf-8') as file:
+            fieldnames = reader.fieldnames
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            for book in books:
+                if choice == 1:
+                    book['status'] = 'Available'
+                elif choice == 2:
+                    book['status'] = 'Checked Out'#suggest add code to add checkouts+1
+                    if 'checkouts' in book and book['checkouts'].isdigit():
+                        book['checkouts'] = str(int(book['checkouts']) + 1)
+
+                    
+
+                    
+                elif choice == 3:
+                    book['status'] = 'Reserved'
+
+                elif choice == 4:
+                    book['status'] = 'Lost'
+                writer.writerow(book)
+
+    def edit_book_status_and_update_patron(self):
+        """Improved edit: change a single book by ISBN and optionally update the patron record.
+        This stores `borrowed_books` in `patron1.csv` as a JSON string mapping ISBN -> info.
+        """
+        choice = int(input("Enter choice: \n1. Available\n2. Checked Out\n3. Reserved\n4. Lost\nChoice: "))
+
+        isbn = input("Enter the ISBN (or ISBN13) of the book to change: ").strip()
+        patron_lib_input = None
+        if choice in (1, 2, 3):
+            patron_lib_input = input("Enter the library number of the patron you are transacting with (or press Enter to skip): ").strip()
+
+        # Update book status in books CSV
+        with open('books123.updated.csv', mode='r', newline='', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            books = list(reader)
+            fieldnames = reader.fieldnames
+
+        updated = False
+        for book in books:
+            if (book.get('isbn') and book.get('isbn').strip() == isbn) or (book.get('isbn13') and book.get('isbn13').strip() == isbn):
+                if choice == 1:
+                    book['status'] = 'Available'
+                elif choice == 2:
+                    book['status'] = 'Checked Out'
+                    book['checkouts'] = str(int(book.get('checkouts') or 0) + 1)
+                elif choice == 3:
+                    book['status'] = 'Reserved'
+                elif choice == 4:
+                    book['status'] = 'Lost'
+                updated = True
+                break
+
+        if not updated:
+            print(f"No book with ISBN {isbn} found in books CSV.")
+
+        with open('books123.updated.csv', mode='w', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            for b in books:
+                writer.writerow(b)
+
+        # Update patron record if provided
+        if patron_lib_input:
+            try:
+                library_number = int(patron_lib_input)
+            except ValueError:
+                print('Invalid library number provided; skipping patron update.')
+                return
+
+            with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
+                preader = csv.DictReader(pfile)
+                patrons = list(preader)
+                p_fieldnames = preader.fieldnames
+
+            patron_found = False
+            for patron in patrons:
+                try:
+                    if int(patron.get('library_number', -1)) == library_number:
+                        patron_found = True
+                        bb_raw = patron.get('borrowed_books') or '{}'
+                        try:
+                            borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) else {}
+                        except Exception:
+                            borrowed = {}
+
+                        today = datetime.date.today()
+                        if choice == 2:
+                            max_days = int(patron.get('max_days_allowed') or 0)
+                            due = (today + datetime.timedelta(days=max_days)).isoformat()
+                            borrowed[isbn] = {'status': 'checked_out', 'due_date': due, 'checkout_date': today.isoformat()}
+                        elif choice == 1:
+                            if isbn in borrowed:
+                                del borrowed[isbn]
+                        elif choice == 3:
+                            borrowed[isbn] = {'status': 'reserved', 'reserved_date': today.isoformat()}
+
+                        patron['borrowed_books'] = json.dumps(borrowed)
+                        break
+                except ValueError:
+                    continue
+
+            if not patron_found:
+                print(f'Patron with library number {library_number} not found; patron CSV not updated.')
+                return
+
+            with open('patron1.csv', mode='w', newline='', encoding='utf-8') as pfile:
+                writer = csv.DictWriter(pfile, fieldnames=p_fieldnames)
+                writer.writeheader()
+                for pat in patrons:
+                    writer.writerow(pat)
+            print('Book status and patron record updated.')
+
+    def add_assistant(self): #DONE
         name = input("Enter assistant's name: ")
         age = int(input("Enter assistant's age: "))
         while True:
@@ -220,6 +384,13 @@ class Librarian(Staff):
     def edit_patron_info(self):
       pass      
 
+
+
+
+
+
+
+
            
     
 
@@ -287,11 +458,53 @@ class Child(Patron):
         super().__init__(name, age, library_number, max_books_allowed=2, max_days_allowed=15)
     def __repr__(self):
         return f'Child({self.name},{self.age})'
+def first_menu():#FIRST TIME MENU(if currentuser=none)
+    print("Welcome to the Library Management System")
+    print("Since this is your first time here, please create your librarian account to get started.")
+    Librarian.add_librarian()
+    librarian_menu()
+    #add account method
+def librarian_menu():#MAIN MENU
+    print("Welcome to the Library Management System")
+    print("\n====== Librarian Menu ======\n")
+    print("1. Add Book")
+    print("2. Remove Book")
+    print("3. Add Assistant")
+    print("4. Show Assistants")
+    print("5. Remove Assistant")
+    print('6. Edit book status')
+    print("7. Add Librarian")
+    print("8. Add Patron")
+    print("9. Remove Patron")
+    print("10. Edit Patron Info")
+    print("11. Show Patron Info")
+    print("12. Lend Book")
+    print("13. Receive Book")
+    print("14. Add Fines")
+    print("15. Calculate Fines")
+    print("16. Delete Own Account")
+    print("17. Generate Report")
+    print('18. Search Books')
 
-def menu_5_1():#MENU 5.1 ADD PATRON
+    print("0. Exit\n")
+
+# Call the function to display the menu
+
+
+
+
+#TENTATIVE PA YUNG MGA NUMBER NG MENU BAKA KASI MAY MADAGDAG
+def menu_5_1():#MENU 5.1 ADD PATRON 
     print("Select Patron Type to Add:")
     print("1. Student")
     print("2. Faculty")
     print("3. Community")
     print("4. Child")
+def menu6_1():#MENU 6.1 EDIT BOOK STATUS
+    print("Select Book Status to Edit:")
+    print("1. Available")
+    print("2. Checked Out")
+    print("3. Reserved")
+    print("4. Lost")
+
     #ILAGAY YUNG CURRENTUSER.ADDPATRON LATER ON
