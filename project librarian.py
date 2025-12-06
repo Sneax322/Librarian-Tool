@@ -1,6 +1,13 @@
+import os
 import random
 import csv
-
+if not os.path.exists('patron1.csv') or os.path.getsize('patron1.csv') == 0:
+    with open('patron1.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([
+            'name', 'age', 'library_number', 'fines', 'borrowed_books',
+            'days_overdue', 'max_books_allowed', 'max_days_allowed', 'object'
+        ])
 class Book:
     def __init__(self, title, authors, average_rating, isbn, isbn13, language_code, num_pages, ratings_count, text_reviews_count, publication_date, publisher):
         self.title = title
@@ -52,12 +59,12 @@ def generate_library_number():
         if num not in used_library_numbers:
             used_library_numbers.add(num)
             return num
-librarians=[]
-assistants=[]
-students=[]
-faculties=[]
-communities=[]
-child=[]
+# librarians=[]
+# assistants=[]
+# students=[]
+# faculties=[]
+# communities=[]
+# child=[]
 class Person:#DONE
     def __init__(self, name, age):
         self.name = name
@@ -84,50 +91,63 @@ class Staff(Person):
         pass
 
 
-class Librarian(Staff):
-    def add_assistant(self, name, age, username, password): 
-        if username in [a.username for a in assistants]:
-          print(f'Assistant with username {username} already exists.')
-          return
+# class Librarian(Staff):
+#     def add_assistant(self, name, age, username, password): 
+#         if username in [a.username for a in assistants]:
+#           print(f'Assistant with username {username} already exists.')
+#           return
          
-        else:
-                new_assistant = Assistant(name, age, username, password)
-                assistants.append(new_assistant)
-                print(f'Assistant with username {username} added successfully.')
+#         else:
+#                 new_assistant = Assistant(name, age, username, password)
+#                 assistants.append(new_assistant)
+#                 print(f'Assistant with username {username} added successfully.')
 
-    def remove_assistant(self, username):
-        for assistant in assistants:
-            if assistant.username == username:
-                assistants.remove(assistant)
-                print(f'Assistant {username} removed successfully.')
-                return
-        print(f'Assistant with username {username} not found.')
+#     def remove_assistant(self, username):
+#         for assistant in assistants:
+#             if assistant.username == username:
+#                 assistants.remove(assistant)
+#                 print(f'Assistant {username} removed successfully.')
+#                 return
+#         print(f'Assistant with username {username} not found.')
     
-    def show_assistants_info(self):
-        if not assistants:
-            print('No assistants available.')
-            return
-        for assistant in assistants:
-            print(f'Name: {assistant.name}, Age: {assistant.age}, Username: {assistant.username}')
+#     def show_assistants_info(self):
+#         if not assistants:
+#             print('No assistants available.')
+#             return
+#         for assistant in assistants:
+#             print(f'Name: {assistant.name}, Age: {assistant.age}, Username: {assistant.username}')
 #ADD_PATRON HAS BEEN CHECKED THOROUGHLY BUT PUT VALIDATION ON OUTER CODE LIKE AGE ETC
-    def add_patron(self,name,age,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed, five_point_one):#YUNG MENU 5.1, number 1 yung student, 2 faculty,3 community,4 child
+    def add_patron(choice):
+        choice=int(choice)
+        name = input("Enter patron's name: ")   
+        age = int(input("Enter patron's age: "))
         library_number = generate_library_number()
-        if five_point_one==1:
-            new_patron=Student(name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed)
-            students.append(new_patron)
-            print(f'Student added succesfully with library number {library_number}.')
-        elif five_point_one ==2:
-            new_patron=Faculty(name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed)
-            faculties.append(new_patron)
-            print(f'Faculty added successfully with library number {library_number}.')
-        elif five_point_one ==3:
-            new_patron=Community(name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed)
-            communities.append(new_patron)
-            print(f'Community added successfully with library number {library_number}.')
-        elif five_point_one ==4:
-            new_patron=Child(name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed)
-            child.append(new_patron)
-            print(f'Child added successfully with library number {library_number}.')
+        if choice == 1:  # Student
+            if age<18:
+                print("Age must be at least 18 for Student patron type.")
+                return
+            new_patron = Student(name, age, library_number, max_books_allowed=5, max_days_allowed=30)
+            print(f'Student added with library number: {library_number}')
+        elif choice == 2:  # Faculty
+            new_patron = Faculty(name, age, library_number, max_books_allowed=10, max_days_allowed=60)
+            print(f'Faculty added with library number: {library_number}')
+        elif choice == 3:  # Community
+            new_patron = Community(name, age, library_number, max_books_allowed=3, max_days_allowed=20)
+            print(f'Community member added with library number: {library_number}')
+        elif choice == 4:  
+            if age>12:
+                print("Age must be 12 or below for Child patron type.")
+                return
+            new_patron = Child(name, age, library_number, max_books_allowed=2, max_days_allowed=15)
+            print(f'Child added with library number: {library_number}')
+        with open('patron1.csv', mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([
+                new_patron.name, new_patron.age, new_patron.library_number, new_patron.fines,
+                new_patron.borrowed_books, new_patron.days_overdue, new_patron.max_books_allowed,
+                new_patron.max_days_allowed, repr(new_patron)
+            ])
+        
 #REMOVE_PATRON HAS BEEN CHECKED THOROUGHLY 
     def remove_patron(self,six_point_one, library_number): # MENU 6.1
         if library_number not in used_library_numbers:
@@ -218,26 +238,46 @@ class Assistant(Staff):
     pass
 
 class Patron(Person):
-    def __init__(self, name, age,library_number, fines ,borrowed_books,days_overdue, max_books_allowed, max_days_allowed):
+    def __init__(self, name, age,library_number, fines=0.0 ,borrowed_books=None,days_overdue=0, max_books_allowed=0, max_days_allowed=0):
         super().__init__(name, age)
         self.fines=fines
-        self.borrowed_books=borrowed_books
+        self.borrowed_books=borrowed_books if borrowed_books is not None else []
         self.days_overdue=days_overdue
         self.max_books_allowed=max_books_allowed
         self.max_days_allowed=max_days_allowed
         self.library_number=library_number
-
+    def __repr__(self):
+        return f'Patron({self.name}, {self.age}, {self.library_number})'
         #ADD ATTRIBUTES AND METHODS COMMON IN PATRON TYPES
     
 class Student(Patron):
-    pass
-
+     def __init__(self, name, age, library_number):
+        super().__init__(name, age, library_number, max_books_allowed=5, max_days_allowed=30)
+     def __repr__(self):
+        return f'Student({self.name},{self.age})'
 class Faculty(Patron):
-    pass
+     def __init__(self, name, age, library_number):
+        super().__init__(name, age, library_number, max_books_allowed=10, max_days_allowed=60)
+     def __repr__(self):
+        return f'Faculty({self.name},{self.age})'
+    
 
 class Community(Patron):
-    pass    
+    def __init__(self, name, age, library_number):
+        super().__init__(name, age, library_number, max_books_allowed=3, max_days_allowed=20)
+    def __repr__(self):
+        return f'Community({self.name},{self.age})'
 
 class Child(Patron):
-    pass
+    def __init__(self, name, age, library_number):
+        super().__init__(name, age, library_number, max_books_allowed=2, max_days_allowed=15)
+    def __repr__(self):
+        return f'Child({self.name},{self.age})'
 
+def menu_5_1():#MENU 5.1 ADD PATRON
+    print("Select Patron Type to Add:")
+    print("1. Student")
+    print("2. Faculty")
+    print("3. Community")
+    print("4. Child")
+    #ILAGAY YUNG CURRENTUSER.ADDPATRON LATER ON
