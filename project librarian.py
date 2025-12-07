@@ -3,6 +3,7 @@ import os
 import random
 import csv
 import json
+import pandas as pd
 if not os.path.exists('patron1.csv') or os.path.getsize('patron1.csv') == 0:
     with open('patron1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -100,6 +101,151 @@ class Staff(Person):
         self.password=password
         #ADD ATTRIBUTES AND METHODS COMMON IN ASSISTANT AND LIBRARY
         #COMMON METHODS
+    def add_book(self):#DONE
+        clear_screen()
+        print("Add a book")
+        title = input("Enter book title: ")
+        authors = input("Enter book author(s): ")
+        isbn = input("Enter book ISBN: ")
+        
+        # Check if ISBN already exists
+        for book in books:
+            if book.isbn == isbn:
+                print("Book with this ISBN already exists in the library.")
+                return
+
+        isbn13 = input("Enter book ISBN-13: ")
+        language_code = input("Enter book language code: ")
+        
+        try:
+            num_pages = int(input("Enter number of pages: "))
+        except ValueError:
+            num_pages = 0
+
+        try:
+            ratings_count = int(input("Enter ratings count: "))
+        except ValueError:
+            ratings_count = 0
+
+        try:
+            text_reviews_count = int(input("Enter text reviews count: "))
+        except ValueError:
+            text_reviews_count = 0
+
+        publication_date = input("Enter book publication date: ")
+        publisher = input("Enter book publisher: ")
+
+        max_book_id = 0
+        with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                try:
+                    book_id = int(row.get('bookID', 0))
+                    if book_id > max_book_id:
+                        max_book_id = book_id
+                except ValueError:
+                    continue
+
+        next_book_id = max_book_id + 1
+
+        new_book = Book(title, authors, 0.0, isbn, isbn13, language_code, num_pages, ratings_count, text_reviews_count, publication_date, publisher)
+        books.append(new_book)
+
+        with open('books123.updated.csv', mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=['bookID', 'title', 'authors', 'average_rating', 'isbn', 'isbn13', 'language_code', 'num_pages', 'ratings_count', 'text_reviews_count', 'publication_date', 'publisher', 'Status', 'Checkouts'])
+            writer.writerow({
+                'bookID': next_book_id,
+                'title': title,
+                'authors': authors,
+                'average_rating': 0.0,
+                'isbn': isbn,
+                'isbn13': isbn13,
+                'language_code': language_code,
+                'num_pages': num_pages,
+                'ratings_count': ratings_count,
+                'text_reviews_count': text_reviews_count,
+                'publication_date': publication_date,
+                'publisher': publisher,
+                'Status': 'Available',
+                'Checkouts': 0
+            })
+
+        print(f"Book '{title}' added successfully with Book ID: {next_book_id}!")
+        
+    def remove_book(self):#DONE
+        import shutil, os, csv, tempfile
+        src = 'books123.updated.csv'
+        if not os.path.exists(src):
+            print("Books file not found.")
+            return
+
+        book_id = input("Enter Book ID to remove (or B to cancel): ").strip()
+        if not book_id or book_id.lower() == 'b':
+            print("Aborted.")
+            return
+
+        # backup
+        bak = src + '.bak'
+        try:
+            shutil.copy2(src, bak)
+        except Exception:
+            pass
+
+        # read raw CSV
+        with open(src, mode='r', encoding='utf-8', newline='') as f:
+            reader = csv.reader(f)
+            try:
+                header = next(reader)
+            except StopIteration:
+                print("CSV is empty.")
+                return
+            rows = [row for row in reader]
+
+        id_col = 0
+        for i, h in enumerate(header):
+            if h and h.strip().lower() == 'bookid':
+                id_col = i
+                break
+
+        matches = [ (i, r) for i, r in enumerate(rows) if len(r) > id_col and r[id_col].strip() == book_id ]
+        if not matches:
+            print(f"Book ID '{book_id}' not found.")
+            return
+
+        title_col = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'title'), None)
+        isbn_col  = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'isbn'), None)
+        for idx, r in matches:
+            title = r[title_col] if title_col is not None and title_col < len(r) else ''
+            isbn =  r[isbn_col]  if isbn_col  is not None and isbn_col  < len(r) else ''
+            print(f"  row_index={idx}  bookID={r[id_col]}  title={title[:80]}  isbn={isbn}")
+
+        if input("Confirm removal of these record(s)? (y/N): ").strip().lower() != 'y':
+            print("Aborted.")
+            return
+
+        remove_indices = {i for i, _ in matches}
+        updated_rows = [r for i, r in enumerate(rows) if i not in remove_indices]
+
+        fd, tmp = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
+        os.close(fd)
+        try:
+            with open(tmp, mode='w', encoding='utf-8', newline='') as out:
+                writer = csv.writer(out)
+                writer.writerow([h for h in header if h is not None])
+                writer.writerows(updated_rows)
+            os.replace(tmp, src)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+
+        removed_isbns = set()
+        for _, r in matches:
+            if isbn_col is not None and isbn_col < len(r):
+                removed_isbns.add(r[isbn_col].strip())
+        global books
+        books[:] = [b for b in books if (b.isbn or '').strip() not in removed_isbns]
+
+        print(f"Removed {len(remove_indices)} record(s).")
     def delete_own_account(self):
         pass
     def add_fines(self,patron):
@@ -107,10 +253,240 @@ class Staff(Person):
     def calculate_fines(self,patron):
         pass
     def lend_book(self):
+        import tempfile, os, csv, json, datetime
+        clear_screen()
+        print("Lend a Book")
+        lib_input = input("Enter patron library number (or B to cancel): ").strip()
+        if not lib_input or lib_input.lower() == 'b':
+            print("Aborted.")
+            return
+        try:
+            library_number = int(lib_input)
+        except ValueError:
+            print("Invalid library number.")
+            return
         
-        pass
-    def receive_book(self,patron):
-        pass
+        p_path = 'patron1.csv'
+        if not os.path.exists(p_path):
+            print("Patron file not found.")
+            return
+        with open(p_path, mode='r', encoding='utf-8', newline='') as pfile:
+            preader = csv.DictReader(pfile)
+            p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','borrowed_books','days_overdue','max_books_allowed','max_days_allowed','object']
+            patrons = list(preader)
+
+        patron = None
+        for p in patrons:
+            try:
+                if int(p.get('library_number', -1)) == library_number:
+                    patron = p
+                    break
+            except Exception:
+                continue
+        if not patron:
+            print(f"Patron with library number {library_number} not found.")
+            return
+
+        bb_raw = patron.get('borrowed_books') or '{}'
+        try:
+            borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) else borrowed
+        except Exception:
+            try:
+                import ast
+                borrowed = ast.literal_eval(bb_raw)
+            except Exception:
+                borrowed = {}
+
+        try:
+            max_allowed = int(patron.get('max_books_allowed') or 0)
+        except Exception:
+            max_allowed = 0
+        if max_allowed and len(borrowed) >= max_allowed:
+            print("Patron has reached the maximum allowed borrowed books.")
+            return
+
+        book_id = input("Enter Book ID to lend (or B to cancel): ").strip()
+        if not book_id or book_id.lower() == 'b':
+            print("Aborted.")
+            return
+
+        books_path = 'books123.updated.csv'
+        if not os.path.exists(books_path):
+            print("Books file not found.")
+            return
+
+        with open(books_path, mode='r', encoding='utf-8', newline='') as bfile:
+            breader = csv.DictReader(bfile)
+            raw_b_fieldnames = breader.fieldnames or ['bookID','title','authors','average_rating','isbn','isbn13','language_code','num_pages','ratings_count','text_reviews_count','publication_date','publisher','Status','Checkouts']
+            b_fieldnames = [fn for fn in raw_b_fieldnames if fn and str(fn).strip()]
+            books_rows = list(breader)
+
+        match = None
+        for row in books_rows:
+            if (row.get('bookID') or '').strip() == book_id:
+                match = row
+                break
+        if not match:
+            print(f"Book ID {book_id} not found.")
+            return
+
+        status = (match.get('Status') or match.get('status') or '').strip()
+        if status.lower() == 'checked out':
+            print("Book is already checked out.")
+            return
+
+        match['Status'] = 'Checked Out'
+        try:
+            current_checkouts = int((match.get('Checkouts') or '0').strip())
+        except Exception:
+            current_checkouts = 0
+        match['Checkouts'] = str(current_checkouts + 1)
+
+        fd, tmp_path = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
+        os.close(fd)
+        try:
+            with open(tmp_path, mode='w', encoding='utf-8', newline='') as out:
+                writer = csv.DictWriter(out, fieldnames=b_fieldnames)
+                writer.writeheader()
+                sanitized_rows = []
+                for row in books_rows:
+                    clean_row = {fn: (row.get(fn, '') if row.get(fn) is not None else '') for fn in b_fieldnames}
+                    sanitized_rows.append(clean_row)
+                writer.writerows(sanitized_rows)
+            os.replace(tmp_path, books_path)
+        finally:
+            if os.path.exists(tmp_path):
+                try: os.remove(tmp_path)
+                except Exception: pass
+
+        isbn_key = (match.get('isbn') or match.get('isbn13') or '').strip() or book_id
+        today = datetime.date.today()
+        try:
+            max_days = int(patron.get('max_days_allowed') or 0)
+        except Exception:
+            max_days = 0
+        due_date = (today + datetime.timedelta(days=max_days)).isoformat() if max_days > 0 else ''
+
+        borrowed[isbn_key] = {'checkout_date': today.isoformat(), 'due_date': due_date, 'bookID': book_id}
+        patron['borrowed_books'] = json.dumps(borrowed)
+
+        fd2, tmp2 = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
+        os.close(fd2)
+        try:
+            with open(tmp2, mode='w', encoding='utf-8', newline='') as p_out:
+                writer = csv.DictWriter(p_out, fieldnames=p_fieldnames)
+                writer.writeheader()
+                writer.writerows(patrons)
+            os.replace(tmp2, p_path)
+        finally:
+            if os.path.exists(tmp2):
+                try: os.remove(tmp2)
+                except Exception: pass
+
+        global books
+        for b in books:
+            if getattr(b, 'isbn', '') == match.get('isbn') or getattr(b, 'isbn13', '') == match.get('isbn13') or getattr(b, 'title', '') == match.get('title'):
+                try:
+                    b.Status = 'Checked Out'
+                    b.Checkouts = int(getattr(b, 'Checkouts', 0)) + 1
+                except Exception:
+                    pass
+
+        print(f"Book ID {book_id} lent to patron {library_number}. Due: {due_date}")
+    def receive_book(self):
+        import tempfile, os, csv, json, datetime
+        clear_screen()
+        print("Receive a Returned Book")
+        
+        book_id = input("Enter Book ID being returned (or B to cancel): ").strip()
+        if not book_id or book_id.lower() == 'b':
+            print("Aborted.")
+            return
+
+        books_path = 'books123.updated.csv'
+        if not os.path.exists(books_path):
+            print("Books file not found.")
+            return
+
+        with open(books_path, mode='r', encoding='utf-8', newline='') as bfile:
+            breader = csv.DictReader(bfile)
+            raw_b_fieldnames = breader.fieldnames or ['bookID','title','authors','average_rating','isbn','isbn13','language_code','num_pages','ratings_count','text_reviews_count','publication_date','publisher','Status','Checkouts']
+            b_fieldnames = [fn for fn in raw_b_fieldnames if fn and str(fn).strip()]
+            books_rows = list(breader)
+
+        match = None
+        for row in books_rows:
+            if (row.get('bookID') or '').strip() == book_id:
+                match = row
+                break
+        if not match:
+            print(f"Book ID {book_id} not found.")
+            return
+
+        status = (match.get('Status') or match.get('status') or '').strip()
+        if status.lower() == 'available':
+            print("Book is already available (not checked out).")
+            return
+
+        match['Status'] = 'Available'
+
+        fd, tmp_path = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
+        os.close(fd)
+        try:
+            with open(tmp_path, mode='w', encoding='utf-8', newline='') as out:
+                writer = csv.DictWriter(out, fieldnames=b_fieldnames)
+                writer.writeheader()
+                sanitized_rows = []
+                for row in books_rows:
+                    clean_row = {fn: (row.get(fn, '') if row.get(fn) is not None else '') for fn in b_fieldnames}
+                    sanitized_rows.append(clean_row)
+                writer.writerows(sanitized_rows)
+            os.replace(tmp_path, books_path)
+        finally:
+            if os.path.exists(tmp_path):
+                try: os.remove(tmp_path)
+                except Exception: pass
+
+        p_path = 'patron1.csv'
+        if os.path.exists(p_path):
+            with open(p_path, mode='r', encoding='utf-8', newline='') as pfile:
+                preader = csv.DictReader(pfile)
+                p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','borrowed_books','days_overdue','max_books_allowed','max_days_allowed','object']
+                patrons = list(preader)
+
+            isbn_key = (match.get('isbn') or '').strip()
+            removed = False
+            for p in patrons:
+                bb_raw = p.get('borrowed_books') or '{}'
+                try:
+                    borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) else borrowed
+                except Exception:
+                    try:
+                        import ast
+                        borrowed = ast.literal_eval(bb_raw)
+                    except Exception:
+                        borrowed = {}
+                
+                if isbn_key in borrowed:
+                    del borrowed[isbn_key]
+                    p['borrowed_books'] = json.dumps(borrowed)
+                    removed = True
+
+            if removed:
+                fd2, tmp2 = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
+                os.close(fd2)
+                try:
+                    with open(tmp2, mode='w', encoding='utf-8', newline='') as p_out:
+                        writer = csv.DictWriter(p_out, fieldnames=p_fieldnames)
+                        writer.writeheader()
+                        writer.writerows(patrons)
+                    os.replace(tmp2, p_path)
+                finally:
+                    if os.path.exists(tmp2):
+                        try: os.remove(tmp2)
+                        except Exception: pass
+
+        print(f"Book ID {book_id} received and marked Available.")
     def report(self):
         pass
     @classmethod
@@ -177,8 +553,6 @@ class Librarian(Staff):
     #                 book['status'] = 'Available'
     #             elif choice == 2:
     #                 book['status'] = 'Checked Out'#suggest add code to add checkouts+1
-    #                 if 'checkouts' in book and book['checkouts'].isdigit():
-    #                     book['checkouts'] = str(int(book['checkouts']) + 1)
 
                     
 
@@ -454,39 +828,7 @@ class Librarian(Staff):
     
 
     def edit_patron_info(self):
-      pass      
-
-
-
-
-
-
-
-
-           
-    
-
-
-    
-    def add_book(self, title, author, isbn):
-        print("Add a book")
-        title = input("Enter book title: ")
-        author = input("Enter book author: ")
-        isbn = input("Enter book ISBN: ")
-        isbn13 = input("Enter book ISBN-13: ")
-        language_code = input("Enter book language code: ")
-        num_pages = input("Enter number of pages: ")
-        ratings_count = input("Enter ratings count: ")
-        text_reviews_count = input("Enter text reviews count: ")
-        publication_date = input("Enter book publication date: ")
-        publisher = input("Enter book publisher: ")
-
-        for book in books:
-            if book.isbn == isbn:
-                print("Book with this ISBN already exists in the library.")
-                return
-    def remove_book(self):
-        pass
+      pass       
     
 
 
@@ -632,11 +974,45 @@ def librarian_menu():#MAIN MENU
         else:
             print("Invalid choice. Please enter a number between 0 and 18.")
      if next_choice=='1': #RESTY
-        pass
+        clear_screen()
+        current_user.add_book()
+        enter=input("Press Enter to return to the menu.")
+        clear_screen()
+        continue
      if next_choice=='2':#RESTY
-        pass
+        clear_screen()
+        current_user.remove_book()
+        enter=input("Press Enter to return to the menu.")
+        clear_screen()
+        continue
      if next_choice=='3':
-        pass
+        clear_screen()
+        print("1. Lend Book")
+        print("2. Receive Book")
+        print("3. Edit Book Status")
+        while True:
+         choice=input("Enter your choice: ")
+         if choice.isdigit() and 1 <= int(choice) <= 3:
+                break
+         else:
+                print("Invalid choice. Please enter a number between 1 and 3.")
+        if choice=='1':
+            current_user.lend_book()
+            enter=input("Press Enter to return to the menu.")
+            clear_screen()
+            continue
+        if choice=='2':
+            current_user.receive_book()
+            enter=input("Press Enter to return to the menu.")
+            clear_screen()
+            continue
+        if choice=='3':
+            clear_screen()
+            menu6_1()
+            current_user.edit_book_status_and_update_patron()
+            enter=input("Press Enter to return to the menu.")
+            clear_screen()
+            continue
      if next_choice=='4':#DONE
         clear_screen()
         current_user.show_patrons_info()
