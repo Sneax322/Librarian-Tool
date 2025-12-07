@@ -1,1 +1,3 @@
 name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed,object
+1,1,30307,0.0,{},0,5,30,"Student(1,1)"
+a,18,87549,0.0,{},0,5,30,"Student(a,18)"
