@@ -19,7 +19,7 @@ if not os.path.exists('librarian1.csv') or os.path.getsize('librarian1.csv') == 
     with open('librarian1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
-
+fines_collected=0.0
 
 def clear_screen():
    
@@ -247,11 +247,41 @@ class Staff(Person):
 
         print(f"Removed {len(remove_indices)} record(s).")
     def delete_own_account(self):
-        pass
+        clear_screen()
+        username = self.username
+        confirm = input(f"Are you sure you want to delete your account '{username}'? This action cannot be undone. (y/N): ").strip().lower()
+        if confirm != 'y':
+            print("Account deletion aborted.")
+            return
+
+        path = 'librarian1.csv' if isinstance(self, Librarian) else 'assistant1.csv'
+        with open(path, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            records = list(reader)
+
+        with open(path, mode='w', newline='') as file:
+            fieldnames = ['name', 'age', 'username', 'password', 'library_number', 'object']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            removed = False
+            for record in records:
+                if record['username'] != username:
+                    writer.writerow(record)
+                else:
+                    removed = True
+
+            if removed:
+                print(f'Account with username {username} deleted successfully.')
+            else:
+                print(f'Account with username {username} not found.')
     def add_fines(self,patron):
         pass
     def calculate_fines(self,patron):
         pass
+
+        #pls add something to like caclulate all fines collected
+
+        
     def lend_book(self):
         import tempfile, os, csv, json, datetime
         clear_screen()
@@ -497,8 +527,27 @@ class Staff(Person):
             if not patrons:
                 print("No patrons available.")
                 return
-            for patron in patrons:
-                print(f"Name: {patron['name']}, Age: {patron['age']}, Library Number: {patron['library_number']}, Fines: {patron['fines']}, Borrowed Books: {patron['borrowed_books']}, Days Overdue: {patron['days_overdue']}, Max Books Allowed: {patron['max_books_allowed']}, Max Days Allowed: {patron['max_days_allowed']}")
+
+            # chosen columns and compute widths
+            cols = ['name','age','library_number','fines','borrowed_books','days_overdue','max_books_allowed','max_days_allowed']
+            headers = ['Name','Age','Library#','Fines','Borrowed Books','Days Overdue','Max Books','Max Days']
+            widths = []
+            for h,c in zip(headers,cols):
+                w = max(len(h), max((len(str(p.get(c,''))) for p in patrons), default=0))
+                widths.append(w)
+
+            # header
+            header_line = '  '.join(h.ljust(w) for h,w in zip(headers,widths))
+            sep_line = '  '.join('-'*w for w in widths)
+            print(header_line)
+            print(sep_line)
+
+            # rows
+            for p in patrons:
+                row = []
+                for c,w in zip(cols,widths):
+                    row.append(str(p.get(c,'')).ljust(w))
+                print('  '.join(row))
 
 
 class Librarian(Staff):
@@ -658,7 +707,17 @@ class Librarian(Staff):
 
     def add_assistant(self): #DONE
         name = input("Enter assistant's name: ")
-        age = int(input("Enter assistant's age: "))
+        
+        while True:
+            try:
+                age = int(input("Enter assistant's age: "))
+                if age < 0:
+                    print("Age cannot be negative. Please try again.")
+                    continue
+                break
+            except ValueError:
+                print("Please enter a valid integer for age.")
+        
         while True:
             username = input("Enter assistant's username: ")
             with open('assistant1.csv', mode='r', newline='') as file:
@@ -672,6 +731,9 @@ class Librarian(Staff):
         with open('assistant1.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([name, age, username, password])
+        
+        print(f"Assistant '{username}' has been successfully created.") #DONE
+        
 
     def remove_assistant(self):
        clear_screen()
@@ -707,8 +769,19 @@ class Librarian(Staff):
             if not assistants:
                 print("No assistants available.")
                 return
+
+            # compute column widths
+            name_w = max(len('Name'), max((len(str(a.get('name',''))) for a in assistants), default=0))
+            age_w = max(len('Age'), max((len(str(a.get('age',''))) for a in assistants), default=0))
+            user_w = max(len('Username'), max((len(str(a.get('username',''))) for a in assistants), default=0))
+
+            # header
+            print(f"{ 'Name'.ljust(name_w) }  { 'Age'.ljust(age_w) }  { 'Username'.ljust(user_w) }")
+            print(f"{ '-'*name_w }  { '-'*age_w }  { '-'*user_w }")
+
+            # rows
             for assistant in assistants:
-                print(f"Name: {assistant['name']}, Age: {assistant['age']}, Username: {assistant['username']}")
+                print(f"{ str(assistant.get('name','')).ljust(name_w) }  { str(assistant.get('age','')).ljust(age_w) }  { str(assistant.get('username','')).ljust(user_w) }")
 
 #ADD_PATRON HAS BEEN CHECKED THOROUGHLY BUT PUT VALIDATION ON OUTER CODE LIKE AGE ETC
     def add_patron(self):#DONE
@@ -1065,7 +1138,14 @@ def librarian_menu():#MAIN MENU
      if next_choice=='14':
         pass
      if next_choice=='15':
-        pass
+        clear_screen()
+        current_user.delete_own_account()
+        enter=input("Press Enter to return to the menu.")
+        clear_screen()
+        login_menu()
+        break
+     
+        
      if next_choice=='16':
         pass
      if next_choice=='17':#RESTY
