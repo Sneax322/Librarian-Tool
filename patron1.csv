@@ -1,3 +1,7 @@
 name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed,object
-1,1,30307,0.0,"{""0380727501"": {""checkout_date"": ""2025-12-11"", ""due_date"": ""2026-01-10"", ""bookID"": ""28""}}",0,5,30,"Student(1,1)"
 a,18,87549,0.0,{},0,5,30,"Student(a,18)"
+a,1,30629,0.0,{},0,5,30,"Student(a,1)"
+a,1,37620,0.0,{},0,2,15,"Child(a,1)"
+as,51,98155,0.0,{},0,5,30,"Student(as,51)"
+a,12,58256,0.0,{},0,2,15,"Child(a,12)"
+a,12,73255,0.0,{},0,2,15,"Child(a,12)"

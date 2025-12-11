@@ -51,10 +51,10 @@ books = []
 with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
     reader = csv.DictReader(file)
     for row in reader:
-        # Strip whitespace from column names and handle None values
+        
         clean_row = {k.strip(): (v.strip() if v and isinstance(v, str) else v) for k, v in row.items() if k}
         
-        # Skip if missing critical fields
+        # gonna skip if missing the fields
         if not clean_row.get('title') or not clean_row.get('isbn'):
             continue
         
@@ -79,28 +79,196 @@ with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
 used_library_numbers = set()
 def generate_library_number():
     while True:
-        num = random.randint(10000, 99999)  # 5-digit number
+        num = random.randint(10000, 99999)  # 5digit number
         if num not in used_library_numbers:
             used_library_numbers.add(num)
             return num
-# librarians=[]
-# assistants=[]
-# students=[]
-# faculties=[]
-# communities=[]
-# child=[]
+
 class Person:#DONE
     def __init__(self, name, age):
         self.name = name
         self.age = age
 
 class Staff(Person):
+
     def __init__(self, name, age, username, password):
         super().__init__(name, age)
         self.username=username
         self.password=password
         #ADD ATTRIBUTES AND METHODS COMMON IN ASSISTANT AND LIBRARY
         #COMMON METHODS
+    def search_book(self):#DONE
+             
+            import os, csv
+            clear_screen()
+            print("Search Books")
+        
+            books_path = 'books123.updated.csv'
+            if not os.path.exists(books_path):
+                print("Books file not found.")
+                input("Press Enter to return to menu...")
+                return
+        
+            # menu
+            print("Search by:")
+            print("1. Book number")
+            print("2. Title")
+            print("3. ISBN")
+            choice = input("Choose an option (1-3) or B to cancel: ").strip().lower()
+            if not choice or choice == 'b':
+                return
+        
+            def share_detail_book(b):
+                lines = []
+                lines.append(f"Book ID: {b.get('bookID','')}")
+                lines.append(f"Title: {b.get('title','')}")
+                lines.append(f"Authors: {b.get('authors','')}")
+                lines.append(f"Average Rating: {b.get('average_rating','')}")
+                lines.append(f"ISBN: {b.get('isbn','')}  ISBN13: {b.get('isbn13','')}")
+                lines.append(f"Pages: {b.get('num_pages','')}  Language: {b.get('language_code','')}")
+                lines.append(f"Ratings: {b.get('ratings_count','')}  Reviews: {b.get('text_reviews_count','')}")
+                lines.append(f"Publication Date: {b.get('publication_date','')}  Publisher: {b.get('publisher','')}")
+                lines.append(f"Status: {b.get('Status', b.get('status',''))}  Checkouts: {b.get('Checkouts','')} ")
+                return '\n'.join(lines)
+        
+            def show_the_book(b, width_title=48, width_auth=20):
+                bid = str(b.get('bookID','')).ljust(6)
+                title = (b.get('title','') or '')[:width_title].ljust(width_title)
+                authors = (b.get('authors','') or '')[:width_auth].ljust(width_auth)
+                isbn = (b.get('isbn','') or '').ljust(13)
+                status = (b.get('Status') or b.get('status') or '').ljust(12)
+                return f"{bid}  {title}  {authors}  {isbn}  {status}"
+        
+            # read all rows up-front
+            with open(books_path, mode='r', encoding='utf-8', newline='') as bf:
+                reader = csv.DictReader(bf)
+                rows = list(reader)
+        
+            if choice == '1':
+                # exact book number search
+                bid = input("Enter Book ID (exact) or B to cancel: ").strip()
+                if not bid or bid.lower() == 'b':
+                    return
+                match = next((r for r in rows if (r.get('bookID') or '').strip() == bid), None)
+                if not match:
+                    print(f"No book found with Book ID '{bid}'.")
+                    input("Press Enter to return to menu...")
+                    return
+                clear_screen()
+                print(share_detail_book(match))
+                input("\nPress Enter to return to menu...")
+                return
+        
+            # title or isbn => paginated list of 10 with selection
+            prompt_map = {'2': 'title', '3': 'isbn'}
+            field = prompt_map.get(choice)
+            if not field:
+                print("Invalid choice.")
+                return
+        
+            term = input(f"Enter search term for {field} (case-insensitive) or B to cancel: ").strip()
+            if not term or term.lower() == 'b':
+                return
+        
+            term_lower = term.lower()
+            def matches_term(r):
+                return term_lower in (r.get(field) or '').lower()
+        
+            matched = [r for r in rows if matches_term(r)]
+            if not matched:
+                print("No matches found.")
+                input("Press Enter to return to menu...")
+                return
+        
+            # pagination + navigation + selection
+            page = 0
+            page_size = 10
+            total = len(matched)
+            while True:
+                clear_screen()
+                start = page * page_size
+                end = min(start + page_size, total)
+                page_items = matched[start:end]
+        
+                # header for summary list (no left-most index; checkouts added at right)
+                print(f"Showing results {start+1}-{end} of {total} for '{term}' (field: {field})")
+                print("BookID  Title                                             Authors              ISBN          Status       Checkouts")
+                print("------  " + "-"*48 + "  " + "-"*20 + "  " + "-"*13 + "  " + "-"*12 + "  " + "-"*9)
+                for r in page_items:
+                    print(show_the_book(r) + "  " + str(r.get('Checkouts', '')))
+
+                # prompt for navigation or selection by BookID
+                print("\nOptions: enter a Book ID to view details, 'N' next, 'P' previous, 'B' back to menu")
+                nav = input("Choice: ").strip()
+
+                if not nav:
+                    continue
+                nav_l = nav.lower()
+                if nav_l == 'b':
+                    return
+                if nav_l == 'n':
+                    if end >= total:
+                        print("No more pages.")
+                        input("Press Enter to return to menu...")
+                        return
+                    page += 1
+                    continue
+                if nav_l == 'p':
+                    if page == 0:
+                        print("Already at first page.")
+                        input("Press Enter to continue...")
+                        continue
+                    page -= 1
+                    continue
+
+                # treat input as BookID selection
+                chosen = next((m for m in matched if (m.get('bookID') or '').strip() == nav), None)
+                if chosen:
+                    clear_screen()
+                    print(share_detail_book(chosen))
+                    input("\nPress Enter to return to results...")
+                    # keep page where the chosen item appears
+                    try:
+                        sel_idx = matched.index(chosen)
+                        page = sel_idx // page_size
+                    except Exception:
+                        pass
+                    continue
+
+                print("Invalid input or Book ID not in results.")
+                input("Press Enter to continue...")
+                continue
+
+    def change_password(self):
+        clear_screen()
+        print("Change Password")
+        current_password = input("Enter current password: ")
+        if current_password != self.password:
+            print("Incorrect current password.")
+            return
+        new_password = input("Enter new password: ")
+        confirm_password = input("Confirm new password: ")
+        if new_password != confirm_password:
+            print("New passwords do not match.")
+            return
+
+        path = 'librarian1.csv' if isinstance(self, Librarian) else 'assistant1.csv'
+        with open(path, mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            records = list(reader)
+
+        with open(path, mode='w', newline='') as file:
+            fieldnames = ['name', 'age', 'username', 'password', 'library_number', 'object']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            for record in records:
+                if record['username'] == self.username:
+                    record['password'] = new_password
+                writer.writerow(record)
+
+        self.password = new_password
+        print("Password changed successfully.")
+
     def add_book(self):#DONE
         clear_screen()
         print("Add a book")
@@ -108,7 +276,7 @@ class Staff(Person):
         authors = input("Enter book author(s): ")
         isbn = input("Enter book ISBN: ")
         
-        # Check if ISBN already exists
+        # check if  ISBN already exist
         for book in books:
             if book.isbn == isbn:
                 print("Book with this ISBN already exists in the library.")
@@ -174,8 +342,8 @@ class Staff(Person):
         
     def remove_book(self):#DONE
         import shutil, os, csv, tempfile
-        src = 'books123.updated.csv'
-        if not os.path.exists(src):
+        s = 'books123.updated.csv'
+        if not os.path.exists(s):
             print("Books file not found.")
             return
 
@@ -184,15 +352,15 @@ class Staff(Person):
             print("Aborted.")
             return
 
-        # backup
-        bak = src + '.bak'
+        # backup csv
+        bak = s + '.bak'
         try:
-            shutil.copy2(src, bak)
+            shutil.copy2(s, bak)
         except Exception:
             pass
 
         # read raw CSV
-        with open(src, mode='r', encoding='utf-8', newline='') as f:
+        with open(s, mode='r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
             try:
                 header = next(reader)
@@ -201,23 +369,23 @@ class Staff(Person):
                 return
             rows = [row for row in reader]
 
-        id_col = 0
+        column_id = 0
         for i, h in enumerate(header):
             if h and h.strip().lower() == 'bookid':
-                id_col = i
+                column_id = i
                 break
 
-        matches = [ (i, r) for i, r in enumerate(rows) if len(r) > id_col and r[id_col].strip() == book_id ]
+        matches = [ (i, r) for i, r in enumerate(rows) if len(r) > column_id and r[column_id].strip() == book_id ]
         if not matches:
             print(f"Book ID '{book_id}' not found.")
             return
 
-        title_col = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'title'), None)
-        isbn_col  = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'isbn'), None)
-        for idx, r in matches:
-            title = r[title_col] if title_col is not None and title_col < len(r) else ''
-            isbn =  r[isbn_col]  if isbn_col  is not None and isbn_col  < len(r) else ''
-            print(f"  row_index={idx}  bookID={r[id_col]}  title={title[:80]}  isbn={isbn}")
+        column_title = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'title'), None)
+        column_isbn  = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'isbn'), None)
+        for indexx, r in matches:
+            title = r[column_title] if column_title is not None and column_title < len(r) else ''
+            isbn =  r[column_isbn]  if column_isbn  is not None and column_isbn  < len(r) else ''
+            print(f"  row_index={indexx}  bookID={r[column_id]}  title={title[:80]}  isbn={isbn}")
 
         if input("Confirm removal of these record(s)? (y/N): ").strip().lower() != 'y':
             print("Aborted.")
@@ -233,15 +401,15 @@ class Staff(Person):
                 writer = csv.writer(out)
                 writer.writerow([h for h in header if h is not None])
                 writer.writerows(updated_rows)
-            os.replace(tmp, src)
+            os.replace(tmp, s)
         finally:
             if os.path.exists(tmp):
                 os.remove(tmp)
 
         removed_isbns = set()
         for _, r in matches:
-            if isbn_col is not None and isbn_col < len(r):
-                removed_isbns.add(r[isbn_col].strip())
+            if column_isbn is not None and column_isbn < len(r):
+                removed_isbns.add(r[column_isbn].strip())
         global books
         books[:] = [b for b in books if (b.isbn or '').strip() not in removed_isbns]
 
@@ -279,7 +447,7 @@ class Staff(Person):
     def calculate_fines(self,patron):
         pass
 
-        #pls add something to like caclulate all fines collected
+        
 
         
     def lend_book(self):
@@ -529,24 +697,24 @@ class Staff(Person):
                 return
 
             # chosen columns and compute widths
-            cols = ['name','age','library_number','fines','borrowed_books','days_overdue','max_books_allowed','max_days_allowed']
-            headers = ['Name','Age','Library#','Fines','Borrowed Books','Days Overdue','Max Books','Max Days']
+            cols = ['name', 'age', 'library_number', 'fines', 'days_overdue', 'max_books_allowed', 'max_days_allowed', 'borrowed_books']
+            headers = ['Name', 'Age', 'Library#', 'Fines', 'Days Overdue', 'Max Books', 'Max Days', 'Borrowed Books']
             widths = []
-            for h,c in zip(headers,cols):
-                w = max(len(h), max((len(str(p.get(c,''))) for p in patrons), default=0))
+            for h, c in zip(headers, cols):
+                w = max(len(h), max((len(str(p.get(c, ''))) for p in patrons), default=0))
                 widths.append(w)
 
             # header
-            header_line = '  '.join(h.ljust(w) for h,w in zip(headers,widths))
-            sep_line = '  '.join('-'*w for w in widths)
+            header_line = '  '.join(h.ljust(w) for h, w in zip(headers, widths))
+            sep_line = '  '.join('-' * w for w in widths)
             print(header_line)
             print(sep_line)
 
             # rows
             for p in patrons:
                 row = []
-                for c,w in zip(cols,widths):
-                    row.append(str(p.get(c,'')).ljust(w))
+                for c, w in zip(cols, widths):
+                    row.append(str(p.get(c, '')).ljust(w))
                 print('  '.join(row))
 
 
@@ -556,8 +724,22 @@ class Librarian(Staff):
     @classmethod
     def add_librarian(cls):#DONE
         clear_screen()
+        print('=' * 40)
+        print('Welcome to the library management system!')
+        print('Since this is your first time, please create a librarian account to get started.')
+        print('=' * 40)
+        print('')
         name = input("Enter librarian's name: ")
-        age = int(input("Enter librarian's age: "))
+        while True:
+            try:
+                age = int(input("Enter librarian's age: "))
+                if age < 0:
+                    print("Age cannot be negative. Please try again.")
+                    continue
+                break
+            except ValueError:
+                print("Please enter a valid integer for age.")
+
         while True:
             username = input("Enter librarian's username: ")
             with open('librarian1.csv', mode='r', newline='') as file:
@@ -571,139 +753,7 @@ class Librarian(Staff):
         with open('librarian1.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([name, age, username, password])
-    # def edit_book_status(self):
-    #     choice=int(input("Enter choice: "))
-    #     if choice==1 or choice==2 or choice==3:
-    #         user=input( "Enter the library number of the patron you are transacting with." )
-    #         current_client= None
-    #         with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
-    #             preader = csv.DictReader(pfile)
-    #             for patron in preader:
-    #                 try:
-    #                     if int(patron.get('library_number', -1)) == int(user):
-    #                         current_client=patron
-    #                         break
-    #                 except ValueError:
-    #                     continue
-    #     if choice==1:
-    #         current_client.book
-    #         #i want current client to be patron object
-    #         #like current_client= is the patron object that matches the library number
-        
-    #     with open('books123.updated.csv', mode='r', newline='', encoding='utf-8') as file:
-    #         reader = csv.DictReader(file)
-    #         books = list(reader)            
-    #     with open('books123.updated.csv', mode='w', newline='', encoding='utf-8') as file:
-    #         fieldnames = reader.fieldnames
-    #         writer = csv.DictWriter(file, fieldnames=fieldnames)
-    #         writer.writeheader()
-    #         for book in books:
-    #             if choice == 1:
-    #                 book['status'] = 'Available'
-    #             elif choice == 2:
-    #                 book['status'] = 'Checked Out'#suggest add code to add checkouts+1
-
-                    
-
-                    
-    #             elif choice == 3:
-    #                 book['status'] = 'Reserved'
-
-    #             elif choice == 4:
-    #                 book['status'] = 'Lost'
-    #             writer.writerow(book)
-
-    # def edit_book_status_and_update_patron(self):
-    #     """Improved edit: change a single book by ISBN and optionally update the patron record.
-    #     This stores `borrowed_books` in `patron1.csv` as a JSON string mapping ISBN -> info.
-    #     """
-    #     choice = int(input("Enter choice: \n1. Available\n2. Checked Out\n3. Reserved\n4. Lost\nChoice: "))
-
-    #     isbn = input("Enter the ISBN (or ISBN13) of the book to change: ").strip()
-    #     patron_lib_input = None
-    #     if choice in (1, 2, 3):
-    #         patron_lib_input = input("Enter the library number of the patron you are transacting with (or press Enter to skip): ").strip()
-
-    #     # Update book status in books CSV
-    #     with open('books123.updated.csv', mode='r', newline='', encoding='utf-8') as file:
-    #         reader = csv.DictReader(file)
-    #         books = list(reader)
-    #         fieldnames = reader.fieldnames
-
-    #     updated = False
-    #     for book in books:
-    #         if (book.get('isbn') and book.get('isbn').strip() == isbn) or (book.get('isbn13') and book.get('isbn13').strip() == isbn):
-    #             if choice == 1:
-    #                 book['status'] = 'Available'
-    #             elif choice == 2:
-    #                 book['status'] = 'Checked Out'
-    #                 book['checkouts'] = str(int(book.get('checkouts') or 0) + 1)
-    #             elif choice == 3:
-    #                 book['status'] = 'Reserved'
-    #             elif choice == 4:
-    #                 book['status'] = 'Lost'
-    #             updated = True
-    #             break
-
-    #     if not updated:
-    #         print(f"No book with ISBN {isbn} found in books CSV.")
-
-    #     with open('books123.updated.csv', mode='w', newline='', encoding='utf-8') as file:
-    #         writer = csv.DictWriter(file, fieldnames=fieldnames)
-    #         writer.writeheader()
-    #         for b in books:
-    #             writer.writerow(b)
-
-    #     # Update patron record if provided
-    #     if patron_lib_input:
-    #         try:
-    #             library_number = int(patron_lib_input)
-    #         except ValueError:
-    #             print('Invalid library number provided; skipping patron update.')
-    #             return
-
-    #         with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
-    #             preader = csv.DictReader(pfile)
-    #             patrons = list(preader)
-    #             p_fieldnames = preader.fieldnames
-
-    #         patron_found = False
-    #         for patron in patrons:
-    #             try:
-    #                 if int(patron.get('library_number', -1)) == library_number:
-    #                     patron_found = True
-    #                     bb_raw = patron.get('borrowed_books') or '{}'
-    #                     try:
-    #                         borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) else {}
-    #                     except Exception:
-    #                         borrowed = {}
-
-    #                     today = datetime.date.today()
-    #                     if choice == 2:
-    #                         max_days = int(patron.get('max_days_allowed') or 0)
-    #                         due = (today + datetime.timedelta(days=max_days)).isoformat()
-    #                         borrowed[isbn] = {'status': 'checked_out', 'due_date': due, 'checkout_date': today.isoformat()}
-    #                     elif choice == 1:
-    #                         if isbn in borrowed:
-    #                             del borrowed[isbn]
-    #                     elif choice == 3:
-    #                         borrowed[isbn] = {'status': 'reserved', 'reserved_date': today.isoformat()}
-
-    #                     patron['borrowed_books'] = json.dumps(borrowed)
-    #                     break
-    #             except ValueError:
-    #                 continue
-
-    #         if not patron_found:
-    #             print(f'Patron with library number {library_number} not found; patron CSV not updated.')
-    #             return
-
-    #         with open('patron1.csv', mode='w', newline='', encoding='utf-8') as pfile:
-    #             writer = csv.DictWriter(pfile, fieldnames=p_fieldnames)
-    #             writer.writeheader()
-    #             for pat in patrons:
-    #                 writer.writerow(pat)
-    #         print('Book status and patron record updated.')
+    
 
     def add_assistant(self): #DONE
         name = input("Enter assistant's name: ")
@@ -783,7 +833,7 @@ class Librarian(Staff):
             for assistant in assistants:
                 print(f"{ str(assistant.get('name','')).ljust(name_w) }  { str(assistant.get('age','')).ljust(age_w) }  { str(assistant.get('username','')).ljust(user_w) }")
 
-#ADD_PATRON HAS BEEN CHECKED THOROUGHLY BUT PUT VALIDATION ON OUTER CODE LIKE AGE ETC
+
     def add_patron(self):#DONE
         while True:
          choice=input("Enter your choice: ")
@@ -868,38 +918,6 @@ class Librarian(Staff):
         else:
             print(f'Patron with library number {library_number} not found.')
 
-    # def remove_patron(self):#DONE
-    #     clear_screen()
-    #     current_user.show_patrons_info()
-    #     library_number = input("Enter the library number of the patron to remove/Press B to cancel: ")
-    #     if library_number.lower() == 'b':
-    #         return
-    #     if library_number not in used_library_numbers:
-    #         print('Library number does not exist.')
-    #         return
-    #     with open('patron1.csv', mode='r', newline='') as file:
-    #         reader = csv.DictReader(file)
-    #         patrons = list(reader)
-    #     with open('patron1.csv', mode='w', newline='') as file:
-    #         fieldnames = ['name', 'age', 'library_number', 'fines', 'borrowed_books',
-    #                       'days_overdue', 'max_books_allowed', 'max_days_allowed', 'object']
-    #         writer = csv.DictWriter(file, fieldnames=fieldnames)
-    #         writer.writeheader()
-    #         removed = False
-    #         for patron in patrons:
-    #             if int(patron['library_number']) != library_number:
-    #                 writer.writerow(patron)
-    #             else:
-    #                 removed = True
-    #         if removed:
-    #             used_library_numbers.remove(library_number)
-    #             print(f'Patron with library number {library_number} removed successfully.')
-    #         else:
-    #             print(f'Patron with library number {library_number} not found.')
-        
-        
-    
-
     def edit_patron_info(self):
       pass       
     
@@ -969,7 +987,8 @@ def login_menu():#LOGIN MENU
     print("Please log in to continue.")
     print("1. Librarian Login")
     print("2. Assistant Login")
-    print("3. Exit\n")
+    print("3. Exit\n\n")
+    print("NOTE: If you are an assistant and do not have an account yet, please contact the librarian to create one for you.")
     while True:
         choice=input("Enter your choice: ")
         
@@ -977,7 +996,8 @@ def login_menu():#LOGIN MENU
             break
         else:
             print("Invalid choice. Please enter a number between 1 and 3.")
-    if choice == '1':
+    while True:
+     if choice == '1':
         username = input("Enter your username: ")
         password = input("Enter your password: ")
         with open('librarian1.csv', mode='r', newline='') as file:
@@ -990,8 +1010,10 @@ def login_menu():#LOGIN MENU
                     librarian_menu()
                     return
             print("Invalid username or password. Please try again.\n")
+            print('In case you forgot your password, OPEN THE BOOK123.UPDATED.CSV file to retrieve your account(NOTE:This file is strictly for librarian)')
+            enterr=input('Press enter to continue\n')
             
-    elif choice == '2':
+     elif choice == '2':
         username = input("Enter your username: ")
         password = input("Enter your password: ")
         with open('assistant1.csv', mode='r', newline='') as file:
@@ -1004,14 +1026,13 @@ def login_menu():#LOGIN MENU
                     assistant_menu()
                     return
             print("Invalid username or password. Please try again.\n")
+            print('In case you forgot your username or password, contact your librarian to retrieve your account')
+            enterr=input('Press enter to continue\n')
             
-    elif choice == '3':
+     elif choice == '3':
         print("Exiting the system. Goodbye!")
         exit()
-    
-  
-            
-    
+
     #add account method
 def librarian_menu():#MAIN MENU
     global current_user, current_client
@@ -1020,26 +1041,25 @@ def librarian_menu():#MAIN MENU
      clear_screen()
      print("Welcome to the Library Management System")
      print("\n====== Librarian Menu ======\n")
-     print("1. Add Book")
-     print("2. Remove Book")
-     print('3. Lend Book/Receive Book/Edit book status')
+     print("1. Add Book")#RESTY
+     print("2. Remove Book")#RESTY
+     print('3. Lend Book/Receive Book/Edit book status')#RESTY
      print("4. Show Patron Info")#DONE!
-     print('5. Receive fines from Patron')
+     print('5. Receive fines from Patron')#RESTY
      print("6. Add Assistant")#DONE
      print("7. Show Assistants")#DOne
      print("8. Remove Assistant")#DOne
-     print("9. Add Librarian")#DOne
-     print("10. Add Patron")#DOne
-     print("11. Remove Patron")#DOne
-     print("12. Edit Patron Info")
-     print('13. Receive fines from Patron')
-     print("14. Calculate Overall Fines")
-     print("15. Delete Own Account")
-     print("16. Generate Report")
-     print('17. Search Books')
-     print("18. Logout")
-     print('19. Change password/Account info')
-     print("0. Exit\n")
+     print("9. Add Patron")#DOne
+     print("10. Remove Patron")#DOne
+     print("11. Edit Patron Info")#RESTY
+     print('12. Show transaction history')#RESTY
+     print("13. Calculate Overall Fines")#RESTY
+     print("14. Delete Own Account")#done
+     print("15. Generate Report")#RESTY
+     print('16. Search Books')#done
+     print("17. Logout")#DONE
+     print('18. Change password')#done
+     print("0. Exit\n")#done
      while True:
         next_choice=input("Enter your choice: ")
         if next_choice.isdigit() and 0 <= int(next_choice) <= 18:
@@ -1058,7 +1078,7 @@ def librarian_menu():#MAIN MENU
         enter=input("Press Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='3':
+     if next_choice=='3':#resty
         clear_screen()
         print("1. Lend Book")
         print("2. Receive Book")
@@ -1069,17 +1089,17 @@ def librarian_menu():#MAIN MENU
                 break
          else:
                 print("Invalid choice. Please enter a number between 1 and 3.")
-        if choice=='1':
+        if choice=='1':#resty
             current_user.lend_book()
             enter=input("Press Enter to return to the menu.")
             clear_screen()
             continue
-        if choice=='2':
+        if choice=='2':#resty
             current_user.receive_book()
             enter=input("Press Enter to return to the menu.")
             clear_screen()
             continue
-        if choice=='3':
+        if choice=='3':#resty
             clear_screen()
             menu6_1()
             current_user.edit_book_status_and_update_patron()
@@ -1092,7 +1112,7 @@ def librarian_menu():#MAIN MENU
         enter=input("Press Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='5':
+     if next_choice=='5':#resty
         pass
      if next_choice=='6':
         clear_screen()
@@ -1112,53 +1132,55 @@ def librarian_menu():#MAIN MENU
         enter=input("Press Enter to return to the menu.")
         clear_screen()
         continue
+
      if next_choice=='9':
-        clear_screen()
-        current_user.add_librarian()
-        enter=input("Press Enter to return to the menu.")
-        clear_screen()
-        continue
-     if next_choice=='10':
         clear_screen()
         menu_10_1()
         current_user.add_patron()
         enter=input("Press Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='11':
+     if next_choice=='10':
         clear_screen()
         current_user.remove_patron()
         enter=input("Press Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='12':
+     if next_choice=='11':#resty
         pass
-     if next_choice=='13':
+     if next_choice=='12':#restyt
+        pass
+     if next_choice=='13':#resty
         pass
      if next_choice=='14':
-        pass
-     if next_choice=='15':
         clear_screen()
         current_user.delete_own_account()
         enter=input("Press Enter to return to the menu.")
         clear_screen()
-        login_menu()
+        starting_point()
         break
      
         
+     if next_choice=='15':#resty
+        pass
      if next_choice=='16':
-        pass
-     if next_choice=='17':#RESTY
-        pass
-     if next_choice=='18':
+        clear_screen()
+        current_user.search_book()
+        clear_screen()
+        continue
+     if next_choice=='17':
        clear_screen()
        current_user=None
        clear_screen()
        login_menu()
        break
 
-     if next_choice=='19':
-        pass
+     if next_choice=='18':
+        clear_screen()
+        current_user.change_password()
+        enter=input("Press Enter to return to the menu.")
+        clear_screen()
+        continue
      if next_choice=='0':
         print("Thank you for using the Library Management System. Goodbye!")
         exit()
@@ -1172,15 +1194,15 @@ def assistant_menu():
      clear_screen()
      print("Welcome to the Library Management System")
      print("\n====== Assistant Menu ======\n")
-     print("1. Add Book")
-     print("2. Remove Book")
-     print("3. Lend Book/Receive Book/Edit book status")
-     print("4. Show Patron Info")
-     print("5. Receive fines from Patron")
-     print("6. Delete Own Account")
-     print("7. Search Books")
-     print("8. Logout")
-     print("0. Exit\n")
+     print("1. Add Book")#resty
+     print("2. Remove Book")#resty
+     print("3. Lend Book/Receive Book/Edit book status")#resty
+     print("4. Show Patron Info")#done
+     print("5. Receive fines from Patron")#resty
+     print("6. Delete Own Account")#done
+     print("7. Search Books")#done
+     print("8. Logout")#done
+     print("0. Exit\n")#done
      while True:
       next_choice=input("Enter your choice: ")
       if next_choice.isdigit() and 0 <= int(next_choice) <= 8:
@@ -1188,11 +1210,11 @@ def assistant_menu():
       else:
                 print("Invalid choice. Please enter a number between 0 and 8.")
                 continue
-     if next_choice=='1':
+     if next_choice=='1':#resty
         pass
-     if next_choice=='2':
+     if next_choice=='2':#resty
         pass
-     if next_choice=='3':
+     if next_choice=='3':#restyt
         pass
      if next_choice=='4':
         clear_screen()
@@ -1201,12 +1223,20 @@ def assistant_menu():
         clear_screen()
         continue
         
-     if next_choice=='5':
+     if next_choice=='5':#resty
         pass
      if next_choice=='6':
-        pass
+        clear_screen()
+        current_user.delete_own_account()
+        enter=input("Press Enter to return to the menu.")
+        clear_screen()
+        starting_point()
+        break
      if next_choice=='7':
-        pass
+        clear_screen()
+        current_user.search_book()
+        clear_screen()
+        continue
      if next_choice=='8':
          clear_screen()
          current_user=None
@@ -1217,17 +1247,7 @@ def assistant_menu():
      if next_choice=='0':
         print("Thank you for using the Library Management System. Goodbye!")
         exit()  
-   
-    
-
-
-
-
 # Call the function to display the menu
-
-
-
-
 #TENTATIVE PA YUNG MGA NUMBER NG MENU BAKA KASI MAY MADAGDAG
 def menu_10_1():#MENU 5.1 ADD PATRON 
     print("Select Patron Type to Add:")
@@ -1244,9 +1264,11 @@ def menu6_1():#MENU 6.1 EDIT BOOK STATUS
     print("4. Lost")
 
     #ILAGAY YUNG CURRENTUSER.ADDPATRON LATER ON
-with open('librarian1.csv', mode='r', newline='') as file:
+#START OF CODE
+def starting_point():
+ with open('librarian1.csv', mode='r', newline='') as file:
     if os.path.getsize('librarian1.csv') == 0 or len(file.readlines()) <= 1:
         first_menu()
     else:
         login_menu()
-print('james')
+starting_point()
