@@ -7,10 +7,13 @@ import pandas as pd
 if not os.path.exists('patron1.csv') or os.path.getsize('patron1.csv') == 0:
     with open('patron1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
+        # order: name, age, library_number, fines, days_overdue, max_books_allowed,
+        # max_days_allowed, contact_number, book_preferences, borrowed_books, object
         writer.writerow([
-            'name', 'age', 'library_number', 'fines', 'borrowed_books',
-            'days_overdue', 'max_books_allowed', 'max_days_allowed', 'object'
-        ])  
+            'name', 'age', 'library_number', 'fines',
+            'days_overdue', 'max_books_allowed', 'max_days_allowed',
+            'contact_number', 'book_preferences', 'borrowed_books', 'object'
+        ])
 if not os.path.exists('assistant1.csv') or os.path.getsize('assistant1.csv') == 0:
     with open('assistant1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -470,7 +473,7 @@ class Staff(Person):
             return
         with open(p_path, mode='r', encoding='utf-8', newline='') as pfile:
             preader = csv.DictReader(pfile)
-            p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','borrowed_books','days_overdue','max_books_allowed','max_days_allowed','object']
+            p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','days_overdue','max_books_allowed','max_days_allowed','contact_number','book_preferences','borrowed_books','object']
             patrons = list(preader)
 
         patron = None
@@ -649,7 +652,7 @@ class Staff(Person):
         if os.path.exists(p_path):
             with open(p_path, mode='r', encoding='utf-8', newline='') as pfile:
                 preader = csv.DictReader(pfile)
-                p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','borrowed_books','days_overdue','max_books_allowed','max_days_allowed','object']
+                p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','days_overdue','max_books_allowed','max_days_allowed','contact_number','book_preferences','borrowed_books','object']
                 patrons = list(preader)
 
             isbn_key = (match.get('isbn') or '').strip()
@@ -696,9 +699,9 @@ class Staff(Person):
                 print("No patrons available.")
                 return
 
-            # chosen columns and compute widths
-            cols = ['name', 'age', 'library_number', 'fines', 'days_overdue', 'max_books_allowed', 'max_days_allowed', 'borrowed_books']
-            headers = ['Name', 'Age', 'Library#', 'Fines', 'Days Overdue', 'Max Books', 'Max Days', 'Borrowed Books']
+            # chosen columns and compute widths (contact and preferences shown before borrowed_books)
+            cols = ['name', 'age', 'library_number', 'fines', 'days_overdue', 'max_books_allowed', 'max_days_allowed', 'contact_number', 'book_preferences', 'borrowed_books']
+            headers = ['Name', 'Age', 'Library no.', 'Fines', 'Days Overdue', 'Max Books', 'Max Days', 'Contact', 'Preferences', 'Borrowed Books']
             widths = []
             for h, c in zip(headers, cols):
                 w = max(len(h), max((len(str(p.get(c, ''))) for p in patrons), default=0))
@@ -870,12 +873,19 @@ class Librarian(Staff):
                     break
             new_patron = Child(name, age, library_number)
             print(f'Child added with library number: {library_number}')
+        # ask for contact number and preferences (stored in CSV only)
+        contact_number = input("Enter contact number(optional): ").strip()
+        book_preferences = input("Enter book preferences:(optional) ").strip()
+
         with open('patron1.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
+            # CSV column order: name, age, library_number, fines,
+            # days_overdue, max_books_allowed, max_days_allowed,
+            # contact_number, book_preferences, borrowed_books, object
             writer.writerow([
                 new_patron.name, new_patron.age, new_patron.library_number, new_patron.fines,
-                new_patron.borrowed_books, new_patron.days_overdue, new_patron.max_books_allowed,
-                new_patron.max_days_allowed, repr(new_patron)
+                new_patron.days_overdue, new_patron.max_books_allowed, new_patron.max_days_allowed,
+                contact_number, book_preferences, new_patron.borrowed_books, repr(new_patron)
             ])
         
 #REMOVE_PATRON HAS BEEN CHECKED THOROUGHLY 
@@ -901,8 +911,9 @@ class Librarian(Staff):
             return
 
         with open('patron1.csv', mode='w', newline='') as file:
-            fieldnames = ['name', 'age', 'library_number', 'fines', 'borrowed_books',
-                          'days_overdue', 'max_books_allowed', 'max_days_allowed', 'object']
+            fieldnames = ['name', 'age', 'library_number', 'fines',
+                          'days_overdue', 'max_books_allowed', 'max_days_allowed',
+                          'contact_number', 'book_preferences', 'borrowed_books', 'object']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             removed = False
