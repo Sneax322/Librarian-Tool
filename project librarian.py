@@ -160,8 +160,8 @@ class Staff(Person):
                 return
         
             # title or isbn => paginated list of 10 with selection
-            prompt_map = {'2': 'title', '3': 'isbn'}
-            field = prompt_map.get(choice)
+            mapperr = {'2': 'title', '3': 'isbn'}
+            field = mapperr.get(choice)
             if not field:
                 print("Invalid choice.")
                 return
@@ -180,7 +180,7 @@ class Staff(Person):
                 input("\nPress Enter to return to menu...")
                 return
         
-            # pagination + navigation + selection
+            # pagination + searcherrigation + selection
             page = 0
             page_size = 10
             total = len(matched)
@@ -197,23 +197,23 @@ class Staff(Person):
                 for r in page_items:
                     print(show_the_book(r) + "  " + str(r.get('Checkouts', '')))
 
-                # prompt for navigation or selection by BookID
+                # prompt for searcherrigation or selection by BookID
                 print("\nOptions: enter a Book ID to view details, 'N' next, 'P' previous, 'B' back to menu")
-                nav = input("Choice: ").strip()
+                searcherr = input("Choice: ").strip()
 
-                if not nav:
+                if not searcherr:
                     continue
-                nav_l = nav.lower()
-                if nav_l == 'b':
+                loweringg = searcherr.lower()
+                if loweringg == 'b':
                     return
-                if nav_l == 'n':
+                if loweringg == 'n':
                     if end >= total:
                         print("No more pages.")
                         input("\nPress Enter to return to menu...")
                         return
                     page += 1
                     continue
-                if nav_l == 'p':
+                if loweringg == 'p':
                     if page == 0:
                         print("Already at first page.")
                         input("\nPress Enter to continue...")
@@ -222,15 +222,15 @@ class Staff(Person):
                     continue
 
                 # treat input as BookID selection
-                chosen = next((m for m in matched if (m.get('bookID') or '').strip() == nav), None)
+                chosen = next((m for m in matched if (m.get('bookID') or '').strip() == searcherr), None)
                 if chosen:
                     clear_screen()
                     print(share_detail_book(chosen))
                     input("\n\nPress Enter to return to results...")
                     # keep page where the chosen item appears
                     try:
-                        sel_idx = matched.index(chosen)
-                        page = sel_idx // page_size
+                        index_selectt = matched.index(chosen)
+                        page = index_selectt // page_size
                     except Exception:
                         pass
                     continue
