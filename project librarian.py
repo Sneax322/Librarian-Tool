@@ -106,7 +106,7 @@ class Staff(Person):
             books_path = 'books123.updated.csv'
             if not os.path.exists(books_path):
                 print("Books file not found.")
-                input("Press Enter to return to menu...")
+                input("\nPress Enter to return to menu...")
                 return
         
             # menu
@@ -152,11 +152,11 @@ class Staff(Person):
                 match = next((r for r in rows if (r.get('bookID') or '').strip() == bid), None)
                 if not match:
                     print(f"No book found with Book ID '{bid}'.")
-                    input("Press Enter to return to menu...")
+                    input("\nPress Enter to return to menu...")
                     return
                 clear_screen()
                 print(share_detail_book(match))
-                input("\nPress Enter to return to menu...")
+                input("\n\nPress Enter to return to menu...")
                 return
         
             # title or isbn => paginated list of 10 with selection
@@ -177,7 +177,7 @@ class Staff(Person):
             matched = [r for r in rows if matches_term(r)]
             if not matched:
                 print("No matches found.")
-                input("Press Enter to return to menu...")
+                input("\nPress Enter to return to menu...")
                 return
         
             # pagination + navigation + selection
@@ -209,14 +209,14 @@ class Staff(Person):
                 if nav_l == 'n':
                     if end >= total:
                         print("No more pages.")
-                        input("Press Enter to return to menu...")
+                        input("\nPress Enter to return to menu...")
                         return
                     page += 1
                     continue
                 if nav_l == 'p':
                     if page == 0:
                         print("Already at first page.")
-                        input("Press Enter to continue...")
+                        input("\nPress Enter to continue...")
                         continue
                     page -= 1
                     continue
@@ -226,7 +226,7 @@ class Staff(Person):
                 if chosen:
                     clear_screen()
                     print(share_detail_book(chosen))
-                    input("\nPress Enter to return to results...")
+                    input("\n\nPress Enter to return to results...")
                     # keep page where the chosen item appears
                     try:
                         sel_idx = matched.index(chosen)
@@ -236,7 +236,7 @@ class Staff(Person):
                     continue
 
                 print("Invalid input or Book ID not in results.")
-                input("Press Enter to continue...")
+                input("\nPress Enter to continue...")
                 continue
 
     def change_password(self):
@@ -974,7 +974,7 @@ def first_menu():#FIRST TIME MENU(if currentuser=none)
         for row in reader:
             current_user = Librarian(row['name'], int(row['age']), row['username'], row['password'])
             print(f"Account created successfully. Welcome, {current_user.name}!")
-    enter=input("Press Enter to continue to the menu.")
+    enter=input("\nPress Enter to continue to the menu.")
     clear_screen()
     librarian_menu()
     
@@ -1011,7 +1011,7 @@ def login_menu():#LOGIN MENU
                     return
             print("Invalid username or password. Please try again.\n")
             print('In case you forgot your password, OPEN THE BOOK123.UPDATED.CSV file to retrieve your account(NOTE:This file is strictly for librarian)')
-            enterr=input('Press enter to continue\n')
+            enterr=input('\nPress enter to continue\n')
             
      elif choice == '2':
         username = input("Enter your username: ")
@@ -1027,7 +1027,7 @@ def login_menu():#LOGIN MENU
                     return
             print("Invalid username or password. Please try again.\n")
             print('In case you forgot your username or password, contact your librarian to retrieve your account')
-            enterr=input('Press enter to continue\n')
+            enterr=input('\nPress enter to continue\n')
             
      elif choice == '3':
         print("Exiting the system. Goodbye!")
@@ -1069,13 +1069,13 @@ def librarian_menu():#MAIN MENU
      if next_choice=='1': #RESTY
         clear_screen()
         current_user.add_book()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='2':#RESTY
         clear_screen()
         current_user.remove_book()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='3':#resty
@@ -1091,25 +1091,25 @@ def librarian_menu():#MAIN MENU
                 print("Invalid choice. Please enter a number between 1 and 3.")
         if choice=='1':#resty
             current_user.lend_book()
-            enter=input("Press Enter to return to the menu.")
+            enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
         if choice=='2':#resty
             current_user.receive_book()
-            enter=input("Press Enter to return to the menu.")
+            enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
         if choice=='3':#resty
             clear_screen()
             menu6_1()
             current_user.edit_book_status_and_update_patron()
-            enter=input("Press Enter to return to the menu.")
+            enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
      if next_choice=='4':#DONE
         clear_screen()
         current_user.show_patrons_info()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='5':#resty
@@ -1117,19 +1117,19 @@ def librarian_menu():#MAIN MENU
      if next_choice=='6':
         clear_screen()
         current_user.add_assistant()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='7':
         clear_screen()
         current_user.show_assistants_info()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='8':
         clear_screen()
         current_user.remove_assistant()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
 
@@ -1137,13 +1137,13 @@ def librarian_menu():#MAIN MENU
         clear_screen()
         menu_10_1()
         current_user.add_patron()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='10':
         clear_screen()
         current_user.remove_patron()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='11':#resty
@@ -1155,7 +1155,7 @@ def librarian_menu():#MAIN MENU
      if next_choice=='14':
         clear_screen()
         current_user.delete_own_account()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         starting_point()
         break
@@ -1178,7 +1178,7 @@ def librarian_menu():#MAIN MENU
      if next_choice=='18':
         clear_screen()
         current_user.change_password()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
      if next_choice=='0':
@@ -1219,7 +1219,7 @@ def assistant_menu():
      if next_choice=='4':
         clear_screen()
         current_user.show_patrons_info()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
         
@@ -1228,7 +1228,7 @@ def assistant_menu():
      if next_choice=='6':
         clear_screen()
         current_user.delete_own_account()
-        enter=input("Press Enter to return to the menu.")
+        enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         starting_point()
         break
