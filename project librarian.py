@@ -1010,7 +1010,7 @@ def login_menu():#LOGIN MENU
                     librarian_menu()
                     return
             print("Invalid username or password. Please try again.\n")
-            print('In case you forgot your password, OPEN THE BOOK123.UPDATED.CSV file to retrieve your account(NOTE:This file is strictly for librarian)')
+            print('In case you forgot your password, go back to the VIDEO DEMO to retrieve your account(NOTE:This file is strictly for librarian)')
             enterr=input('\nPress enter to continue\n')
             
      elif choice == '2':
