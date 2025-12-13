@@ -5,3 +5,6 @@ timestamp,type,actor_username,patron_library_number,bookID,amount,note
 2025-12-13 03:39:44,fine_payment,1,64972,,80.0,Payment of $80.00
 2025-12-13 03:40:19,fine_payment,1,64972,,80.0,Payment of $80.00
 2025-12-13 03:42:45,fine_payment,1,64972,,80.0,Payment of $80.00
+2025-12-13 21:23:03,lend,1,63895,45650,0.0,Lent 'a'
+2025-12-13 21:27:14,lend,1,63895,45649,0.0,Lent '1'
+2025-12-13 21:48:45,receive,1,,45650,0.0,Received return of bookID 45650

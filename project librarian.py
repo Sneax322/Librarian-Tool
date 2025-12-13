@@ -409,7 +409,7 @@ class Staff(Person):
                     record['password'] = new_password
                 writer.writerow(record)
 
-        self.password = new_password
+        self.set_password(new_password)
         print("Password changed successfully.")
 
     def add_book(self):

@@ -11125,7 +11125,7 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 45633,You Bright and Risen Angels,William T. Vollmann,4.08,0140110879,9780140110876,eng,635,783,56,12/1/1988,Penguin Books,Available,0
 45634,The Ice-Shirt (Seven Dreams #1),William T. Vollmann,3.96,0140131965,9780140131963,eng,415,820,95,8/1/1993,Penguin Books,Available,0
 45639,Poor People,William T. Vollmann,3.72,0060878827,9780060878825,eng,434,769,139,2/27/2007,Ecco,Available,0
-45641,Las aventuras de Tom Sawyer,Mark Twain,3.91,8497646983,9788497646987,spa,272,113,12,5/28/2006,Edimat Libros,Available,1
+45641,Las aventuras de Tom Sawyer,Mark Twain,3.91,8497646983,9788497646987,spa,272,113,12,5/28/2006,Edimat Libros,Available,2
 45642,n,n,0.0,n,n,n,0,0,0,n,n,Available,0
 45643,1,1,0.0,1,1,1,1,1,1,1,1,Available,0
 45644,2,2,0.0,2,2,2,2,2,2,2,2,Available,0
@@ -11133,3 +11133,6 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 45646,4,4,0.0,4,4,4,4,4,4,4,4,Available,0
 45647,5,5,0.0,5,5,5,5,5,5,5,5,Available,0
 45648,8,8,0.0,8,8,8,8,8,8,8,8,Available,0
+45649,1,32,0.0,32,32,32,32,32,32,32,32,Available,0
+45650,a,a,0.0,a,a,a,0,0,0,a,a,Available,0
+45651,1,1,0.0,23,42,12,12,1,1,1,1,Available,3
