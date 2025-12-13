@@ -865,12 +865,18 @@ class Librarian(Staff):
             new_patron = Community(name, age, library_number)
             print(f'Community member added with library number: {library_number}')
         elif choice == "4":
-            while True:
-                if age > 12:
-                    print("Age exceeds the limit for Child patron type.  ")
-                    age = int(input("Enter a valid age (12 or below)."))
-                else:
-                    break
+            # Ensure age is <= 12 for Child; re-prompt safely on invalid input
+            while age > 12:
+                print("Age exceeds the limit for Child patron type.")
+                try:
+                    childd = int(input("Enter a valid age (12 or below): ").strip())
+                except ValueError:
+                    print("Please enter a valid integer for age.")
+                    # keep age > 12 so the loop continues
+                    age = 13
+                    continue
+                age = childd
+                # loop will continue if childd > 12, otherwise break
             new_patron = Child(name, age, library_number)
             print(f'Child added with library number: {library_number}')
         # ask for contact number and preferences (stored in CSV only)
