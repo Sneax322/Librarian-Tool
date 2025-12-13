@@ -3,35 +3,44 @@ import os
 import random
 import csv
 import json
-import pandas as pd
-if not os.path.exists('patron1.csv') or os.path.getsize('patron1.csv') == 0:
-    with open('patron1.csv', mode='w', newline='') as file:
+import tempfile
+import shutil
+
+BOOKS_PATH = 'books123.updated.csv'
+PATRONS_PATH = 'patron1.csv'
+LIBRARIANS_PATH = 'librarian1.csv'
+ASSISTANTS_PATH = 'assistant1.csv'
+TRANSACTIONS_PATH = 'transactions.csv'
+
+if not os.path.exists(PATRONS_PATH) or os.path.getsize(PATRONS_PATH) == 0:
+    with open(PATRONS_PATH, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([
             'name', 'age', 'library_number', 'fines',
             'days_overdue', 'max_books_allowed', 'max_days_allowed',
             'contact_number', 'book_preferences', 'borrowed_books', 'object'
         ])
-if not os.path.exists('assistant1.csv') or os.path.getsize('assistant1.csv') == 0:
-    with open('assistant1.csv', mode='w', newline='') as file:
+if not os.path.exists(ASSISTANTS_PATH) or os.path.getsize(ASSISTANTS_PATH) == 0:
+    with open(ASSISTANTS_PATH, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
-if not os.path.exists('librarian1.csv') or os.path.getsize('librarian1.csv') == 0:
-    with open('librarian1.csv', mode='w', newline='') as file:
+if not os.path.exists(LIBRARIANS_PATH) or os.path.getsize(LIBRARIANS_PATH) == 0:
+    with open(LIBRARIANS_PATH, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
-fines_collected=0.0
 
-import datetime as _dt
+_fines_collected = 0.0
+_current_user = None
+_current_client = None
 
-def init_transactions(path='transactions.csv'):
+def init_transactions(path=TRANSACTIONS_PATH):
     import csv, os
     if not os.path.exists(path) or os.path.getsize(path) == 0:
         with open(path, mode='w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(['timestamp','type','actor_username','patron_library_number','bookID','amount','note'])
 
-def log_transaction(t_type, actor_username=None, patron_library_number=None, bookID=None, amount=0.0, note=None, path='transactions.csv'):
+def log_transaction(t_type, actor_username=None, patron_library_number=None, bookID=None, amount=0.0, note=None, path=TRANSACTIONS_PATH):
     import csv, os
     init_transactions(path)
     ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -39,7 +48,7 @@ def log_transaction(t_type, actor_username=None, patron_library_number=None, boo
         writer = csv.writer(f)
         writer.writerow([ts, t_type, actor_username or '', patron_library_number or '', bookID or '', f"{amount}", note or ''])
 
-def view_transactions(limit=50, path='transactions.csv'):
+def view_transactions(limit=50, path=TRANSACTIONS_PATH):
     import csv, os
     init_transactions(path)
     rows = []
@@ -61,25 +70,70 @@ def clear_screen():
 
 
 current_user = None
-current_client = None  # Track the patron who borrowed the book
+current_client = None 
 
+def set_current_user(user):
+    global _current_user
+    _current_user = user
+
+def get_current_user():
+    return _current_user
+
+def set_current_client(client):
+    global _current_client
+    _current_client = client
+
+def get_current_client():
+    return _current_client
 class Book:
     def __init__(self, title, authors, average_rating, isbn, isbn13, language_code, num_pages, ratings_count, text_reviews_count, publication_date, publisher):
-        self.title = title
-        self.authors = authors
-        self.average_rating = average_rating
-        self.isbn = isbn
-        self.isbn13 = isbn13
-        self.language_code = language_code
-        self.num_pages = num_pages
-        self.ratings_count = ratings_count
-        self.text_reviews_count = text_reviews_count
-        self.publication_date = publication_date
-        self.publisher = publisher
+        self._title = title
+        self._authors = authors
+        self._average_rating = average_rating
+        self._isbn = isbn
+        self._isbn13 = isbn13
+        self._language_code = language_code
+        self._num_pages = num_pages
+        self._ratings_count = ratings_count
+        self._text_reviews_count = text_reviews_count
+        self._publication_date = publication_date
+        self._publisher = publisher
 
-books = []
+    @property
+    def title(self):
+        return self._title
+    
+    @property
+    def authors(self):
+        return self._authors
+    
+    @property
+    def isbn(self):
+        return self._isbn
+    
+    @property
+    def isbn13(self):
+        return self._isbn13
+    
+    def get(self, key, default=''):
+        attr_map = {
+            'title': self._title,
+            'authors': self._authors,
+            'average_rating': self._average_rating,
+            'isbn': self._isbn,
+            'isbn13': self._isbn13,
+            'language_code': self._language_code,
+            'num_pages': self._num_pages,
+            'ratings_count': self._ratings_count,
+            'text_reviews_count': self._text_reviews_count,
+            'publication_date': self._publication_date,
+            'publisher': self._publisher
+        }
+        return attr_map.get(key, default)
 
-with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
+_books = []
+
+with open(BOOKS_PATH, mode='r', encoding='utf-8') as file:
     reader = csv.DictReader(file)
     for row in reader:
         
@@ -102,30 +156,59 @@ with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
                 publication_date = clean_row.get('publication_date', ''),
                 publisher = clean_row.get('publisher', '')
             )
-            books.append(book)
+            _books.append(book)
         except (ValueError, KeyError):
             continue
 
-used_library_numbers = set()
-def generate_library_number():
+_used_library_numbers = set()
+def _generate_library_number():
     while True:
-        num = random.randint(10000, 99999)  # 5digit number
-        if num not in used_library_numbers:
-            used_library_numbers.add(num)
+        num = random.randint(10000, 99999)
+        if num not in _used_library_numbers:
+            _used_library_numbers.add(num)
             return num
 
-class Person:#DONE
+class Person:
     def __init__(self, name, age):
-        self.name = name
-        self.age = age
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Name must be a non-empty string")
+        if not isinstance(age, int) or age < 0:
+            raise ValueError("Age must be a non-negative integer")
+        self._name = name
+        self._age = age
+
+    @property
+    def name(self):
+        return self._name
+    
+    @property
+    def age(self):
+        return self._age
 
 class Staff(Person):
 
     def __init__(self, name, age, username, password):
         super().__init__(name, age)
-        self.username=username
-        self.password=password
-    def search_book(self):#DONE
+        if not isinstance(username, str) or not username.strip():
+            raise ValueError("Username must be a non-empty string")
+        if not isinstance(password, str) or len(password) < 1:
+            raise ValueError("Password must be at least 1 character")
+        self._username = username
+        self._password = password
+    
+    @property
+    def username(self):
+        return self._username
+    
+    @property
+    def password(self):
+        return self._password
+    
+    def set_password(self, new_password):
+        if not isinstance(new_password, str) or len(new_password) < 1:
+            raise ValueError("Password must be at least 1 character")
+        self._password = new_password
+    def search_book(self):
              
             import os, csv
             clear_screen()
@@ -285,7 +368,7 @@ class Staff(Person):
         self.password = new_password
         print("Password changed successfully.")
 
-    def add_book(self):#DONE
+    def add_book(self):
         clear_screen()
         print("Add a book")
         title = input("Enter book title: ")
@@ -355,7 +438,7 @@ class Staff(Person):
 
         print(f"Book '{title}' added successfully with Book ID: {next_book_id}!")
         
-    def remove_book(self):#DONE
+    def remove_book(self):
         import shutil, os, csv, tempfile
         s = 'books123.updated.csv'
         if not os.path.exists(s):
@@ -476,7 +559,7 @@ class Staff(Person):
             patrons = list(reader)
         
         today = datetime.date.today()
-        fine_per_day = 5.0  # $5 per day late
+        fine_per_day = 5.0
         total_fines_added = 0.0
         
         print(f"Checking overdue books for {len(patrons)} patron(s)...\n")
@@ -1084,7 +1167,7 @@ class Staff(Person):
 
                 print("BookID    | Title                                      | ISBN         | Status       | Checkouts")
                 print("---------+--------------------------------------------+--------------+--------------+----------")
-                for r in rows[:50]:  # show first 50
+                for r in rows[:50]: 
                     bid = (r.get('bookID') or '')[:8].ljust(8)
                     title = (r.get('title') or '')[:42].ljust(42)
                     isbn = (r.get('isbn') or '')[:12].ljust(12)
@@ -1169,7 +1252,7 @@ class Staff(Person):
 
             print("Date       | Type             | Patron                | Amount")
             print("-----------+------------------+-----------------------+---------")
-            for t in recent[-20:]:  # last 20
+            for t in recent[-20:]: 
                 ts_raw = t.get('timestamp', '')
                 ts = ''
                 if ts_raw:
@@ -1243,7 +1326,7 @@ class Staff(Person):
             patron_map = {}
 
         cols = [
-            ('timestamp', 10),    # YYYY-MM-DD
+            ('timestamp', 10),  
             ('type', 12),
             ('actor', 12),
             ('patron', 24),
@@ -1296,7 +1379,7 @@ class Staff(Person):
                 out.append(s.ljust(w))
             print(' | '.join(out))
     @classmethod
-    def show_patrons_info(cls):#DONE
+    def show_patrons_info(cls):
         with open('patron1.csv', mode='r', newline='') as file:
             reader = csv.DictReader(file)
             patrons = list(reader)
@@ -1456,7 +1539,7 @@ class Librarian(Staff):
     def __repr__(self):
         return f'Librarian({self.name}, {self.age}, {self.username})'
     @classmethod
-    def add_librarian(cls):#DONE
+    def add_librarian(cls):
         clear_screen()
         print('=' * 40)
         print('Welcome to the library management system!')
@@ -1489,7 +1572,7 @@ class Librarian(Staff):
             writer.writerow([name, age, username, password])
     
 
-    def add_assistant(self): #DONE
+    def add_assistant(self): 
         name = input("Enter assistant's name: ")
         
         while True:
@@ -1516,7 +1599,7 @@ class Librarian(Staff):
             writer = csv.writer(file)
             writer.writerow([name, age, username, password])
         
-        print(f"Assistant '{username}' has been successfully created.") #DONE
+        print(f"Assistant '{username}' has been successfully created.") 
         
 
     def remove_assistant(self):
@@ -1565,7 +1648,7 @@ class Librarian(Staff):
                 print(f"{ str(assistant.get('name','')).ljust(name_w) }  { str(assistant.get('age','')).ljust(age_w) }  { str(assistant.get('username','')).ljust(user_w) }")
 
 
-    def add_patron(self):#DONE
+    def add_patron(self):
         while True:
          choice=input("Enter your choice: ")
          if choice.isdigit() and 1 <= int(choice) <= 4:
@@ -1583,13 +1666,13 @@ class Librarian(Staff):
          except ValueError:
           print("Please enter a valid integer for age.")
         library_number = generate_library_number()
-        if choice == "1":  # Student
+        if choice == "1":  
             new_patron = Student(name, age, library_number)
             print(f'Student added with library number: {library_number}')
-        elif choice == "2":  # Faculty
+        elif choice == "2": 
             new_patron = Faculty(name, age, library_number)
             print(f'Faculty added with library number: {library_number}')
-        elif choice == "3":  # Community
+        elif choice == "3": 
             new_patron = Community(name, age, library_number)
             print(f'Community member added with library number: {library_number}')
         elif choice == "4":
@@ -1615,7 +1698,7 @@ class Librarian(Staff):
                 contact_number, book_preferences, new_patron.borrowed_books, repr(new_patron)
             ])
         
-    def remove_patron(self):#DONE
+    def remove_patron(self):
         clear_screen()
         current_user.show_patrons_info()
         lib_input = input("Enter the library number of the patron to remove/Press B to cancel: ")
@@ -1696,7 +1779,7 @@ class Child(Patron):
     def __repr__(self):
         return f'Child({self.name},{self.age})'
     
-def first_menu():#FIRST TIME MENU(if currentuser=none)
+def first_menu():
     global current_user
     print("Welcome to the Library Management System")
     print("Since there is no accounts yet, please create your librarian account to get started.")
@@ -1713,7 +1796,7 @@ def first_menu():#FIRST TIME MENU(if currentuser=none)
             
             
 
-def login_menu():#LOGIN MENU
+def login_menu():
     global current_user
     print("Welcome to the Library Management System")
     print("Please log in to continue.")
@@ -1765,51 +1848,51 @@ def login_menu():#LOGIN MENU
         print("Exiting the system. Goodbye!")
         exit()
 
-def librarian_menu():#MAIN MENU
+def librarian_menu():
     global current_user, current_client
     
     while True:
      clear_screen()
      print("Welcome to the Library Management System")
      print("\n====== Librarian Menu ======\n")
-     print("1. Add Book")#DONE
-     print("2. Remove Book")#DONE
-     print('3. Lend Book/Receive Book/Edit book status')#DONE
-     print("4. Show Patron Info")#DONE
-     print('5. Receive fines from Patron')#DONE
-     print("6. Add Assistant")#DONE
-     print("7. Show Assistants")#DOne
-     print("8. Remove Assistant")#DOne
-     print("9. Add Patron")#DOne
-     print("10. Remove Patron")#DOne
-     print("11. Edit Patron Info")#done
-     print('12. Show transaction history')#Done
-     print("13. Calculate Overall Fines")#Done
-     print("14. Delete Own Account")#done
-     print("15. Generate Report")#Done
-     print('16. Search Books')#done
-     print("17. Logout")#DONE
-     print('18. Change password')#done
-     print("0. Exit\n")#done
+     print("1. Add Book")
+     print("2. Remove Book")
+     print('3. Lend Book/Receive Book/Edit book status')
+     print("4. Show Patron Info")
+     print('5. Receive fines from Patron')
+     print("6. Add Assistant")
+     print("7. Show Assistants")
+     print("8. Remove Assistant")
+     print("9. Add Patron")
+     print("10. Remove Patron")
+     print("11. Edit Patron Info")
+     print('12. Show transaction history')
+     print("13. Calculate Overall Fines")
+     print("14. Delete Own Account")
+     print("15. Generate Report")
+     print('16. Search Books')
+     print("17. Logout")
+     print('18. Change password')
+     print("0. Exit\n")
      while True:
         next_choice=input("Enter your choice: ")
         if next_choice.isdigit() and 0 <= int(next_choice) <= 18:
             break
         else:
             print("Invalid choice. Please enter a number between 0 and 18.")
-     if next_choice=='1': #RESTY
+     if next_choice=='1': 
         clear_screen()
         current_user.add_book()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='2':#RESTY
+     if next_choice=='2':
         clear_screen()
         current_user.remove_book()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='3':#resty
+     if next_choice=='3':
         clear_screen()
         print("1. Lend Book")
         print("2. Receive Book")
@@ -1820,30 +1903,30 @@ def librarian_menu():#MAIN MENU
                 break
          else:
                 print("Invalid choice. Please enter a number between 1 and 3.")
-        if choice=='1':#resty
+        if choice=='1':
             current_user.lend_book()
             enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
-        if choice=='2':#resty
+        if choice=='2':
             current_user.receive_book()
             enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
-        if choice=='3':#resty
+        if choice=='3':
             clear_screen()
             menu6_1()
             current_user.edit_book_status()
             enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
-     if next_choice=='4':#DONE
+     if next_choice=='4':
         clear_screen()
         current_user.show_patrons_info()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='5':#resty
+     if next_choice=='5':
         clear_screen()
         current_user.receive_fines_from_patron()
         enter=input("\nPress Enter to return to the menu.")
@@ -1881,12 +1964,12 @@ def librarian_menu():#MAIN MENU
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='11':#resty
+     if next_choice=='11':
         current_user.edit_patron_info()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='12':#restyt
+     if next_choice=='12':
         clear_screen()
         try:
             current_user.view_transactions()
@@ -1895,7 +1978,7 @@ def librarian_menu():#MAIN MENU
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='13':#resty
+     if next_choice=='13':
         clear_screen()
         current_user.calculate_overdue_fines()
         enter=input("\nPress Enter to return to the menu.")
@@ -1910,7 +1993,7 @@ def librarian_menu():#MAIN MENU
         break
      
         
-     if next_choice=='15':#resty
+     if next_choice=='15':
         clear_screen()
         current_user.report()
         enter=input("\nPress Enter to return to the menu.")
@@ -1946,15 +2029,15 @@ def assistant_menu():
      clear_screen()
      print("Welcome to the Library Management System")
      print("\n====== Assistant Menu ======\n")
-     print("1. Add Book")#resty
-     print("2. Remove Book")#resty
-     print("3. Lend Book/Receive Book/Edit book status")#resty
-     print("4. Show Patron Info")#done
-     print("5. Receive fines from Patron")#resty
-     print("6. Delete Own Account")#done
-     print("7. Search Books")#done
-     print("8. Logout")#done
-     print("0. Exit\n")#done
+     print("1. Add Book")
+     print("2. Remove Book")
+     print("3. Lend Book/Receive Book/Edit book status")
+     print("4. Show Patron Info")
+     print("5. Receive fines from Patron")
+     print("6. Delete Own Account")
+     print("7. Search Books")
+     print("8. Logout")
+     print("0. Exit\n")
      while True:
       next_choice=input("Enter your choice: ")
       if next_choice.isdigit() and 0 <= int(next_choice) <= 8:
@@ -1962,19 +2045,19 @@ def assistant_menu():
       else:
                 print("Invalid choice. Please enter a number between 0 and 8.")
                 continue
-     if next_choice=='1': #RESTY
+     if next_choice=='1': 
         clear_screen()
         current_user.add_book()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='2':#RESTY
+     if next_choice=='2':
         clear_screen()
         current_user.remove_book()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='3':#resty
+     if next_choice=='3':
         clear_screen()
         print("1. Lend Book")
         print("2. Receive Book")
@@ -1985,17 +2068,17 @@ def assistant_menu():
                 break
          else:
                 print("Invalid choice. Please enter a number between 1 and 3.")
-        if choice=='1':#resty
+        if choice=='1':
             current_user.lend_book()
             enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
-        if choice=='2':#resty
+        if choice=='2':
             current_user.receive_book()
             enter=input("\nPress Enter to return to the menu.")
             clear_screen()
             continue
-        if choice=='3':#resty
+        if choice=='3':
             clear_screen()
             menu6_1()
             current_user.edit_book_status()
@@ -2008,7 +2091,7 @@ def assistant_menu():
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
-     if next_choice=='5':#resty
+     if next_choice=='5':
         clear_screen()
         current_user.receive_fines_from_patron()
         enter=input("\nPress Enter to return to the menu.")
@@ -2036,14 +2119,14 @@ def assistant_menu():
      if next_choice=='0':
         print("Thank you for using the Library Management System. Goodbye!")
         exit()  
-def menu_10_1():#MENU 5.1 ADD PATRON 
+def menu_10_1():
     print("Select Patron Type to Add:")
     print("1. Student")
     print("2. Faculty")
     print("3. Community")
     print("4. Child") 
     
-def menu6_1():#MENU 6.1 EDIT BOOK STATUS
+def menu6_1():
     print("Select Book Status to Edit:")
     print("1. Available")
     print("2. Checked Out")
