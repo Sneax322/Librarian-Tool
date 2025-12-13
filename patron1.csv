@@ -1,3 +1,3 @@
-name,age,library_number,fines,borrowed_books,days_overdue,max_books_allowed,max_days_allowed,overdue_books,object
-james,18,64972,0.0,{},0,30,14,{},"Student(james,18)"
-Resty,21,42774,0.0,{},2,15,30,{},"Child(jas,12)"
+name,age,library_number,fines,days_overdue,max_books_allowed,max_days_allowed,contact_number,book_preferences,borrowed_books,object
+
+a,12,63895,0.0,0,5,30,123,1234,{},"Student(a,12)"

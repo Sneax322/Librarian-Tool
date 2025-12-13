@@ -60,6 +60,46 @@ def view_transactions(limit=50, path=TRANSACTIONS_PATH):
 
 init_transactions()
 
+
+def corrector(path=PATRONS_PATH):
+    setted = ['name', 'age', 'library_number', 'fines',
+                'days_overdue', 'max_books_allowed', 'max_days_allowed',
+                'contact_number', 'book_preferences', 'borrowed_books', 'object']
+    
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        with open(path, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(setted)
+        return
+
+    
+    with open(path, mode='r', newline='', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+
+    if not rows:
+        with open(path, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(setted)
+        return
+
+    current_header = [h.strip() for h in rows[0]]
+    if current_header == setted:
+        return
+
+   
+    new_rows = [setted]
+    for r in rows[1:]:
+        mapping = {}
+        for i, h in enumerate(current_header):
+            mapping[h] = r[i] if i < len(r) else ''
+        new_row = [mapping.get(col, '') for col in setted]
+        new_rows.append(new_row)
+
+    with open(path, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerows(new_rows)
+
 def clear_screen():
    
     if os.name == 'nt':
@@ -167,6 +207,10 @@ def _generate_library_number():
         if num not in _used_library_numbers:
             _used_library_numbers.add(num)
             return num
+
+
+generate_library_number = _generate_library_number
+used_library_numbers = _used_library_numbers
 
 class Person:
     def __init__(self, name, age):
@@ -610,7 +654,7 @@ class Staff(Person):
                 patron['fines'] = str(new_fines)
                 patron['overdue_books'] = json.dumps(overdue_books)
                 
-                print(f"Patron: {patron.get('name')} (Library #: {patron.get('library_number')})")
+                print(f"Patron: {patron.get('name')} (Library no: {patron.get('library_number')})")
                 for isbn_key, book in overdue_books.items():
                     print(f"  📚 {book['title']}")
                     print(f"     Due: {book['due_date']} | Days Late: {book['days_overdue']} | Fine: ${book['fine']:.2f}")
@@ -1200,7 +1244,7 @@ class Staff(Person):
                 print(f"Patrons with Fines: {with_fines}")
                 print(f"Total Fines Outstanding: ${total_fines:.2f}\n")
 
-                print("Name                    | Library#  | Fines        | Borrowed | Days Overdue")
+                print("Name                    | Library no.  | Fines        | Borrowed | Days Overdue")
                 print("------------------------+-----------+--------------+----------+-----------")
                 for r in rows:
                     name = (r.get('name') or '')[:24].ljust(24)
@@ -1291,7 +1335,7 @@ class Staff(Person):
                 print(f"Patrons with Outstanding Fines: {len(fines_rows)}")
                 print(f"Total Fines: ${total_fines:.2f}\n")
 
-                print("Name                    | Library#  | Fines        | Days Overdue")
+                print("Name                    | Library no.  | Fines        | Days Overdue")
                 print("------------------------+-----------+--------------+----------")
                 for r in sorted(fines_rows, key=lambda x: float(x.get('fines', 0) or 0), reverse=True):
                     name = (r.get('name') or '')[:24].ljust(24)
@@ -1690,13 +1734,27 @@ class Librarian(Staff):
         contact_number = input("Enter contact number(optional): ").strip()
         book_preferences = input("Enter book preferences:(optional) ").strip()
 
+        corrector()
+        fieldnames = [
+            'name', 'age', 'library_number', 'fines',
+            'days_overdue', 'max_books_allowed', 'max_days_allowed',
+            'contact_number', 'book_preferences', 'borrowed_books', 'object'
+        ]
         with open('patron1.csv', mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([
-                new_patron.name, new_patron.age, new_patron.library_number, new_patron.fines,
-                new_patron.days_overdue, new_patron.max_books_allowed, new_patron.max_days_allowed,
-                contact_number, book_preferences, new_patron.borrowed_books, repr(new_patron)
-            ])
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writerow({
+                'name': new_patron.name,
+                'age': new_patron.age,
+                'library_number': new_patron.library_number,
+                'fines': new_patron.fines,
+                'days_overdue': new_patron.days_overdue,
+                'max_books_allowed': new_patron.max_books_allowed,
+                'max_days_allowed': new_patron.max_days_allowed,
+                'contact_number': contact_number,
+                'book_preferences': book_preferences,
+                'borrowed_books': new_patron.borrowed_books,
+                'object': repr(new_patron)
+            })
         
     def remove_patron(self):
         clear_screen()
