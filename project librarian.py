@@ -7,8 +7,6 @@ import pandas as pd
 if not os.path.exists('patron1.csv') or os.path.getsize('patron1.csv') == 0:
     with open('patron1.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        # order: name, age, library_number, fines, days_overdue, max_books_allowed,
-        # max_days_allowed, contact_number, book_preferences, borrowed_books, object
         writer.writerow([
             'name', 'age', 'library_number', 'fines',
             'days_overdue', 'max_books_allowed', 'max_days_allowed',
@@ -24,11 +22,9 @@ if not os.path.exists('librarian1.csv') or os.path.getsize('librarian1.csv') == 
         writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
 fines_collected=0.0
 
-# --- Transactions helpers: create log file, append, and view ---
 import datetime as _dt
 
 def init_transactions(path='transactions.csv'):
-    """Create transactions CSV if missing with header."""
     import csv, os
     if not os.path.exists(path) or os.path.getsize(path) == 0:
         with open(path, mode='w', newline='', encoding='utf-8') as f:
@@ -36,24 +32,14 @@ def init_transactions(path='transactions.csv'):
             writer.writerow(['timestamp','type','actor_username','patron_library_number','bookID','amount','note'])
 
 def log_transaction(t_type, actor_username=None, patron_library_number=None, bookID=None, amount=0.0, note=None, path='transactions.csv'):
-    """Append a transaction record to the transactions CSV.
-
-    t_type: short string like 'lend','receive','fine_payment'
-    actor_username: librarian/assistant username performing action
-    patron_library_number: integer or string
-    bookID: book identifier
-    amount: numeric amount (fines collected etc.)
-    note: optional free-text note
-    """
     import csv, os
     init_transactions(path)
-    ts = _dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with open(path, mode='a', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow([ts, t_type, actor_username or '', patron_library_number or '', bookID or '', f"{amount}", note or ''])
 
 def view_transactions(limit=50, path='transactions.csv'):
-    """Return last `limit` transactions as list of dicts (most recent first)."""
     import csv, os
     init_transactions(path)
     rows = []
@@ -61,10 +47,8 @@ def view_transactions(limit=50, path='transactions.csv'):
         reader = csv.DictReader(f)
         for r in reader:
             rows.append(r)
-    # return most recent first
     return rows[-limit:][::-1]
 
-# ensure transactions file exists on startup
 init_transactions()
 
 def clear_screen():
@@ -101,7 +85,6 @@ with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
         
         clean_row = {k.strip(): (v.strip() if v and isinstance(v, str) else v) for k, v in row.items() if k}
         
-        # gonna skip if missing the fields
         if not clean_row.get('title') or not clean_row.get('isbn'):
             continue
         
@@ -142,8 +125,6 @@ class Staff(Person):
         super().__init__(name, age)
         self.username=username
         self.password=password
-        #ADD ATTRIBUTES AND METHODS COMMON IN ASSISTANT AND LIBRARY
-        #COMMON METHODS
     def search_book(self):#DONE
              
             import os, csv
@@ -156,7 +137,6 @@ class Staff(Person):
                 input("\nPress Enter to return to menu...")
                 return
         
-            # menu
             print("Search by:")
             print("1. Book number")
             print("2. Title")
@@ -186,13 +166,11 @@ class Staff(Person):
                 status = (b.get('Status') or b.get('status') or '').ljust(12)
                 return f"{bid}  {title}  {authors}  {isbn}  {status}"
         
-            # read all rows up-front
             with open(books_path, mode='r', encoding='utf-8', newline='') as bf:
                 reader = csv.DictReader(bf)
                 rows = list(reader)
         
             if choice == '1':
-                # exact book number search
                 bid = input("Enter Book ID (exact) or B to cancel: ").strip()
                 if not bid or bid.lower() == 'b':
                     return
@@ -206,7 +184,6 @@ class Staff(Person):
                 input("\n\nPress Enter to return to menu...")
                 return
         
-            # title or isbn => paginated list of 10 with selection
             mapperr = {'2': 'title', '3': 'isbn'}
             field = mapperr.get(choice)
             if not field:
@@ -227,7 +204,6 @@ class Staff(Person):
                 input("\nPress Enter to return to menu...")
                 return
         
-            # pagination + searcherrigation + selection
             page = 0
             page_size = 10
             total = len(matched)
@@ -237,14 +213,12 @@ class Staff(Person):
                 end = min(start + page_size, total)
                 page_items = matched[start:end]
         
-                # header for summary list (no left-most index; checkouts added at right)
                 print(f"Showing results {start+1}-{end} of {total} for '{term}' (field: {field})")
                 print("BookID  Title                                             Authors              ISBN          Status       Checkouts")
                 print("------  " + "-"*48 + "  " + "-"*20 + "  " + "-"*13 + "  " + "-"*12 + "  " + "-"*9)
                 for r in page_items:
                     print(show_the_book(r) + "  " + str(r.get('Checkouts', '')))
 
-                # prompt for searcherrigation or selection by BookID
                 print("\nOptions: enter a Book ID to view details, 'N' next, 'P' previous, 'B' back to menu")
                 searcherr = input("Choice: ").strip()
 
@@ -256,25 +230,21 @@ class Staff(Person):
                 if loweringg == 'n':
                     if end >= total:
                         print("No more pages.")
-                        input("\nPress Enter to return to menu...")
-                        return
+                        continue
                     page += 1
                     continue
                 if loweringg == 'p':
                     if page == 0:
                         print("Already at first page.")
-                        input("\nPress Enter to continue...")
                         continue
                     page -= 1
                     continue
 
-                # treat input as BookID selection
                 chosen = next((m for m in matched if (m.get('bookID') or '').strip() == searcherr), None)
                 if chosen:
                     clear_screen()
                     print(share_detail_book(chosen))
                     input("\n\nPress Enter to return to results...")
-                    # keep page where the chosen item appears
                     try:
                         index_selectt = matched.index(chosen)
                         page = index_selectt // page_size
@@ -283,7 +253,6 @@ class Staff(Person):
                     continue
 
                 print("Invalid input or Book ID not in results.")
-                input("\nPress Enter to continue...")
                 continue
 
     def change_password(self):
@@ -323,7 +292,6 @@ class Staff(Person):
         authors = input("Enter book author(s): ")
         isbn = input("Enter book ISBN: ")
         
-        # check if  ISBN already exist
         for book in books:
             if book.isbn == isbn:
                 print("Book with this ISBN already exists in the library.")
@@ -399,14 +367,12 @@ class Staff(Person):
             print("Aborted.")
             return
 
-        # backup csv
         bak = s + '.bak'
         try:
             shutil.copy2(s, bak)
         except Exception:
             pass
 
-        # read raw CSV
         with open(s, mode='r', encoding='utf-8', newline='') as f:
             reader = csv.reader(f)
             try:
@@ -494,7 +460,6 @@ class Staff(Person):
     def calculate_fines(self,patron):
         pass
     def calculate_overdue_fines(self):
-        """Calculate fines for overdue books by comparing due_date to today's date."""
         import os, csv, json, datetime, tempfile, shutil
         clear_screen()
         print("Calculate Overdue Fines")
@@ -504,7 +469,6 @@ class Staff(Person):
             print("Patron file not found.")
             return
         
-        # Read patrons
         with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             raw_fieldnames = reader.fieldnames or []
@@ -518,7 +482,6 @@ class Staff(Person):
         print(f"Checking overdue books for {len(patrons)} patron(s)...\n")
         
         for patron in patrons:
-            # Parse borrowed_books
             bb_raw = patron.get('borrowed_books', '{}')
             borrowed = {}
             try:
@@ -529,7 +492,6 @@ class Staff(Person):
             if not borrowed:
                 continue
             
-            # Get current fines
             try:
                 current_fines = float(patron.get('fines', 0))
             except ValueError:
@@ -538,7 +500,6 @@ class Staff(Person):
             overdue_books = {}
             patron_fines_added = 0.0
             
-            # Check each borrowed book for overdue status
             for isbn_key, book_info in borrowed.items():
                 if isinstance(book_info, dict):
                     due_date_str = book_info.get('due_date', '')
@@ -549,7 +510,6 @@ class Staff(Person):
                                 days_overdue = (today - due_date).days
                                 fine_amount = days_overdue * fine_per_day
                                 
-                                # Add to overdue_books
                                 overdue_books[isbn_key] = {
                                     'bookID': book_info.get('bookID', ''),
                                     'title': book_info.get('title', 'Unknown'),
@@ -562,13 +522,11 @@ class Staff(Person):
                         except (ValueError, TypeError):
                             continue
             
-            # Update patron if any overdue books found
             if overdue_books:
                 new_fines = current_fines + patron_fines_added
                 patron['fines'] = str(new_fines)
                 patron['overdue_books'] = json.dumps(overdue_books)
                 
-                # Display details
                 print(f"Patron: {patron.get('name')} (Library #: {patron.get('library_number')})")
                 for isbn_key, book in overdue_books.items():
                     print(f"  📚 {book['title']}")
@@ -577,7 +535,6 @@ class Staff(Person):
                 
                 total_fines_added += patron_fines_added
         
-        # Write updated patrons back to CSV
         if total_fines_added > 0:
             fd, tmp_path = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
             os.close(fd)
@@ -604,7 +561,6 @@ class Staff(Person):
         clear_screen()
         print("Lend a Book")
 
-        # --- Get Patron ---
         lib_input = input("Enter patron library number (or B to cancel): ").strip()
         if not lib_input or lib_input.lower() == 'b':
             return
@@ -623,7 +579,6 @@ class Staff(Person):
         with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             raw_fieldnames = reader.fieldnames or []
-            # Sanitize fieldnames: remove None and empty strings
             fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
             patrons = list(reader)
 
@@ -640,7 +595,6 @@ class Staff(Person):
             print("Patron not found.")
             return
 
-        # --- Parse borrowed_books safely ---
         borrowed = {}
         raw_borrowed = patron.get('borrowed_books', '{}')
 
@@ -649,7 +603,6 @@ class Staff(Person):
         except Exception:
             borrowed = {}
 
-        # --- Check borrowing limit ---
         try:
             max_books = int(patron.get('max_books_allowed', 0))
         except ValueError:
@@ -659,7 +612,6 @@ class Staff(Person):
             print(f"Patron already reached max borrowed books ({max_books}).")
             return
 
-        # --- Get Book ---
         book_id = input("Enter Book ID to lend (or B to cancel): ").strip()
         if not book_id or book_id.lower() == 'b':
             return
@@ -688,14 +640,12 @@ class Staff(Person):
             print("Book is already checked out.")
             return
 
-        # --- Update book status ---
         book['Status'] = 'Checked Out'
         try:
             book['Checkouts'] = str(int(book.get('Checkouts', 0)) + 1)
         except ValueError:
             book['Checkouts'] = '1'
 
-        # --- Write updated books file ---
         fd, tmp = tempfile.mkstemp()
         os.close(fd)
 
@@ -706,7 +656,6 @@ class Staff(Person):
 
         shutil.move(tmp, books_path)
 
-        # --- Compute dates ---
         today = datetime.date.today()
 
         try:
@@ -728,14 +677,12 @@ class Staff(Person):
 
         patron['borrowed_books'] = json.dumps(borrowed)
 
-        # --- Write updated patron file (sanitize fieldnames) ---
         fd2, tmp2 = tempfile.mkstemp()
         os.close(fd2)
 
         with open(tmp2, mode='w', newline='', encoding='utf-8') as out:
             writer = csv.DictWriter(out, fieldnames=fieldnames)
             writer.writeheader()
-            # Sanitize each patron row to only include valid fieldnames
             sanitized_patrons = []
             for p in patrons:
                 clean_patron = {fn: (p.get(fn, '') if p.get(fn) is not None else '') for fn in fieldnames}
@@ -744,13 +691,11 @@ class Staff(Person):
 
         shutil.move(tmp2, patron_path)
 
-        # --- Success message ---
         print("\n✓ Book successfully lent!")
         print(f"Patron : {patron.get('name')}")
         print(f"Book   : {book.get('title')}")
         print(f"Date   : {today.isoformat()}")
         print(f"Due    : {due_date if due_date else 'No limit'}")
-        # Log transaction
         try:
             log_transaction('lend', actor_username=getattr(self, 'username', ''), patron_library_number=library_number, bookID=book_id, amount=0.0, note=f"Lent '{book.get('title','')}'")
         except Exception:
@@ -850,7 +795,6 @@ class Staff(Person):
                         except Exception: pass
 
         print(f"Book ID {book_id} received and marked Available.")
-        # Log receive transaction
         try:
             log_transaction('receive', actor_username=getattr(self, 'username', ''), patron_library_number='', bookID=book_id, amount=0.0, note=f"Received return of bookID {book_id}")
         except Exception:
@@ -870,14 +814,12 @@ class Staff(Person):
             print("Books file not found.")
             return
 
-        # Read books
         with open(books_path, mode='r', newline='', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             raw_fieldnames = reader.fieldnames or []
             fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
             books_rows = list(reader)
 
-        # Find book
         book = None
         for row in books_rows:
             if (row.get('bookID') or '').strip() == book_id:
@@ -888,14 +830,12 @@ class Staff(Person):
             print(f"Book ID {book_id} not found.")
             return
 
-        # Show current status
         current_status = (book.get('Status') or '').strip()
         print(f"\nCurrent Book Details:")
         print(f"  Title: {book.get('title', '')}")
         print(f"  Current Status: {current_status}")
         print(f"  Checkouts: {book.get('Checkouts', '0')}")
 
-        # Show status options
         print("\nSelect New Status:")
         print("1. Available")
         print("2. Checked Out")
@@ -920,10 +860,8 @@ class Staff(Person):
 
         new_status = status_map[choice]
 
-        # Update status
         book['Status'] = new_status
 
-        # Write updated books file
         fd, tmp_path = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
         os.close(fd)
 
@@ -961,14 +899,12 @@ class Staff(Person):
             print("Patron file not found.")
             return
         
-        # Read patrons
         with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             raw_fieldnames = reader.fieldnames or []
             fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
             patrons = list(reader)
         
-        # Find patron
         patron = None
         for p in patrons:
             try:
@@ -982,12 +918,10 @@ class Staff(Person):
             print(f"Patron with library number {library_number} not found.")
             return
         
-        # Show patron info and current fines only (do not auto-calc or display overdue-book fines here)
         try:
             current_fines = float(patron.get('fines', 0))
         except Exception:
             current_fines = 0.0
-        # capture existing overdue entries so we can act on them after payment
         raw_overdue = patron.get('overdue_books', '{}')
         try:
             overdue_entries = json.loads(raw_overdue) if raw_overdue else {}
@@ -1004,7 +938,6 @@ class Staff(Person):
             print("\n  Patron has no outstanding fines.")
             return
         
-        # Get payment amount
         while True:
             try:
                 payment = float(input(f"\nEnter payment amount (max ${current_fines:.2f}): ").strip())
@@ -1022,24 +955,18 @@ class Staff(Person):
             print("No payment received.")
             return
         
-        # Update fines
         new_fines = current_fines - payment
         patron['fines'] = str(new_fines)
-        # If fully paid, clear overdue bookkeeping so it isn't shown as unpaid
         try:
             if float(new_fines) <= 0:
-                # clear overdue_books and reset days_overdue
                 patron['overdue_books'] = '{}'
                 patron['days_overdue'] = '0'
-                # Also remove these overdue items from patron.borrowed_books and mark books Available
-                # Update borrowed_books JSON for this patron
                 try:
                     bb_raw = patron.get('borrowed_books', '{}') or '{}'
                     borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) and bb_raw else (bb_raw if isinstance(bb_raw, dict) else {})
                 except Exception:
                     borrowed = {}
 
-                # remove overdue keys from borrowed
                 for k in list(overdue_entries.keys()):
                     if k in borrowed:
                         del borrowed[k]
@@ -1048,7 +975,6 @@ class Staff(Person):
                 except Exception:
                     patron['borrowed_books'] = '{}'
 
-                # mark affected books as Available in books CSV
                 try:
                     books_path = 'books123.updated.csv'
                     if os.path.exists(books_path):
@@ -1074,7 +1000,6 @@ class Staff(Person):
                                 with open(tmp3, mode='w', encoding='utf-8', newline='') as out:
                                     writer = csv.DictWriter(out, fieldnames=b_fieldnames)
                                     writer.writeheader()
-                                    # sanitize rows
                                     sanitized = [{fn: (r.get(fn, '') if r.get(fn) is not None else '') for fn in b_fieldnames} for r in books_rows]
                                     writer.writerows(sanitized)
                                 shutil.move(tmp3, books_path)
@@ -1087,7 +1012,6 @@ class Staff(Person):
         except Exception:
             pass
         
-        # Write patrons back to CSV (sanitize rows)
         fd, tmp_path = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
         os.close(fd)
         try:
@@ -1105,21 +1029,17 @@ class Staff(Person):
                 try: os.remove(tmp_path)
                 except Exception: pass
         
-        # Update global fines_collected
         global fines_collected
         fines_collected += payment
         
-        # Success message
         print(f"\n✓ Payment received: ${payment:.2f}")
         print(f"  Remaining fines: ${new_fines:.2f}")
         print(f"  Total fines collected today: ${fines_collected:.2f}")
-        # Log fine payment
         try:
             log_transaction('fine_payment', actor_username=getattr(self, 'username', ''), patron_library_number=library_number, bookID='', amount=payment, note=f"Payment of ${payment:.2f}")
         except Exception:
             pass
     def report(self):
-        """Generate reports: books, patrons, transactions, or fines."""
         while True:
             clear_screen()
             print("===== Reports Menu =====\n")
@@ -1142,10 +1062,8 @@ class Staff(Person):
                 return
             else:
                 print("Invalid choice.")
-                input("\nPress Enter to continue...")
 
     def _report_books(self):
-        """Display all books in inventory."""
         clear_screen()
         print("===== Books Report =====\n")
         try:
@@ -1154,7 +1072,6 @@ class Staff(Person):
                 rows = list(reader)
                 if not rows:
                     print("No books found.")
-                    input("\nPress Enter to return...")
                     return
 
                 total = len(rows)
@@ -1179,10 +1096,9 @@ class Staff(Person):
 
         except Exception as e:
             print(f"Error reading books: {e}")
-        input("\nPress Enter to return...")
+        input("\nPress Enter to return to the menu.")
 
     def _report_patrons(self):
-        """Display all patrons and their status."""
         clear_screen()
         print("===== Patrons Report =====\n")
         try:
@@ -1191,7 +1107,6 @@ class Staff(Person):
                 rows = list(reader)
                 if not rows:
                     print("No patrons found.")
-                    input("\nPress Enter to return...")
                     return
 
                 total = len(rows)
@@ -1219,20 +1134,17 @@ class Staff(Person):
 
         except Exception as e:
             print(f"Error reading patrons: {e}")
-        input("\nPress Enter to return...")
+        input("\nPress Enter to return to the menu.")
 
     def _report_transactions(self):
-        """Display transaction summary."""
         clear_screen()
         print("===== Transactions Report =====\n")
         try:
             recent = view_transactions(100)
             if not recent:
                 print("No transactions found.")
-                input("\nPress Enter to return...")
                 return
 
-            # count by type
             lend_count = sum(1 for t in recent if t.get('type') == 'lend')
             receive_count = sum(1 for t in recent if t.get('type') == 'receive')
             payment_count = sum(1 for t in recent if t.get('type') == 'fine_payment')
@@ -1244,7 +1156,6 @@ class Staff(Person):
             print(f"Fine Payments: {payment_count}")
             print(f"Total Fines Collected: ${total_paid:.2f}\n")
 
-            # build patron lookup
             patron_map = {}
             try:
                 with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
@@ -1263,7 +1174,7 @@ class Staff(Person):
                 ts = ''
                 if ts_raw:
                     try:
-                        ts = _dt.datetime.fromisoformat(ts_raw).date().isoformat()
+                        ts = datetime.datetime.fromisoformat(ts_raw).date().isoformat()
                     except:
                         ts = ts_raw[:10]
                 ttype = (t.get('type', '') or '')[:16].ljust(16)
@@ -1277,10 +1188,9 @@ class Staff(Person):
 
         except Exception as e:
             print(f"Error reading transactions: {e}")
-        input("\nPress Enter to return...")
+        input("\nPress Enter to return to the menu.")
 
     def _report_fines(self):
-        """Display patrons with outstanding fines."""
         clear_screen()
         print("===== Fines Report =====\n")
         try:
@@ -1291,7 +1201,6 @@ class Staff(Person):
 
                 if not fines_rows:
                     print("No patrons with outstanding fines.")
-                    input("\nPress Enter to return...")
                     return
 
                 total_fines = sum(float(r.get('fines', 0) or 0) for r in fines_rows)
@@ -1310,9 +1219,8 @@ class Staff(Person):
 
         except Exception as e:
             print(f"Error reading fines: {e}")
-        input("\nPress Enter to return...")
+        input("\nPress Enter to return to the menu.")
     def view_transactions(self):
-        """Show recent transactions (most recent first)."""
         clear_screen()
         print("Recent Transactions")
         try:
@@ -1323,7 +1231,6 @@ class Staff(Person):
         if not recent:
             print("No transactions recorded yet.")
             return
-        # build patron lookup from patron1.csv -> library_number -> name
         patron_map = {}
         try:
             with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
@@ -1335,7 +1242,6 @@ class Staff(Person):
         except Exception:
             patron_map = {}
 
-        # pretty print using patron info when available as a table
         cols = [
             ('timestamp', 10),    # YYYY-MM-DD
             ('type', 12),
@@ -1352,7 +1258,7 @@ class Staff(Person):
             ts = ''
             if ts_raw:
                 try:
-                    ts = _dt.datetime.fromisoformat(ts_raw).date().isoformat()
+                    ts = datetime.datetime.fromisoformat(ts_raw).date().isoformat()
                 except Exception:
                     ts = ts_raw[:10]
 
@@ -1368,7 +1274,6 @@ class Staff(Person):
             note = (t.get('note','') or '')
             rows.append((ts, ttype, actor, patron_display, bookid, amount, note))
 
-        # compute column widths (respect max widths)
         widths = []
         for i, (name, maxw) in enumerate(cols):
             header_len = len(name)
@@ -1376,13 +1281,11 @@ class Staff(Person):
             w = min(max(header_len, content_max), maxw)
             widths.append(w)
 
-        # header
         header = ' | '.join(name.ljust(widths[i]) for i, (name, _) in enumerate(cols))
         sep = '-+-'.join('-' * widths[i] for i in range(len(cols)))
         print(header)
         print(sep)
 
-        # rows (truncate note if necessary)
         for r in rows:
             out = []
             for i, cell in enumerate(r):
@@ -1392,7 +1295,6 @@ class Staff(Person):
                     s = s[:max(0, w-3)] + '...'
                 out.append(s.ljust(w))
             print(' | '.join(out))
-        input("\nPress Enter to return to menu...")
     @classmethod
     def show_patrons_info(cls):#DONE
         with open('patron1.csv', mode='r', newline='') as file:
@@ -1402,7 +1304,6 @@ class Staff(Person):
                 print("No patrons available.")
                 return
 
-            # chosen columns and compute widths (contact and preferences shown before borrowed_books)
             cols = ['name', 'age', 'library_number', 'fines', 'days_overdue', 'max_books_allowed', 'max_days_allowed', 'contact_number', 'book_preferences', 'borrowed_books']
             headers = ['Name', 'Age', 'Library no.', 'Fines', 'Days Overdue', 'Max Books', 'Max Days', 'Contact', 'Preferences', 'Borrowed Books']
             widths = []
@@ -1410,13 +1311,11 @@ class Staff(Person):
                 w = max(len(h), max((len(str(p.get(c, ''))) for p in patrons), default=0))
                 widths.append(w)
 
-            # header
             header_line = '  '.join(h.ljust(w) for h, w in zip(headers, widths))
             sep_line = '  '.join('-' * w for w in widths)
             print(header_line)
             print(sep_line)
 
-            # rows
             for p in patrons:
                 row = []
                 for c, w in zip(cols, widths):
@@ -1424,7 +1323,6 @@ class Staff(Person):
                 print('  '.join(row))
 
     def edit_patron_info(self):
-        """Edit patron information: name, age, contact, preferences, borrowing limits."""
         import tempfile, shutil
         clear_screen()
         print("Edit Patron Information")
@@ -1445,14 +1343,12 @@ class Staff(Person):
             print("Patron file not found.")
             return
 
-        # Read patrons
         with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             raw_fieldnames = reader.fieldnames or []
             fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
             patrons = list(reader)
 
-        # Find patron
         patron = None
         for p in patrons:
             try:
@@ -1463,10 +1359,9 @@ class Staff(Person):
                 continue
 
         if not patron:
-            print(f"Patron with library number {library_number} not found.")
+            print(f"No patron ID {library_number} found.")
             return
 
-        # Show current info
         clear_screen()
         print(f"Patron: {patron.get('name', '')}")
         print(f"Library Number: {library_number}\n")
@@ -1477,7 +1372,6 @@ class Staff(Person):
         print(f"  Max Books: {patron.get('max_books_allowed', '')}")
         print(f"  Max Days: {patron.get('max_days_allowed', '')}\n")
 
-        # Edit menu
         while True:
             print("Edit Options:")
             print("1. Name")
@@ -1539,7 +1433,6 @@ class Staff(Person):
                 print("Invalid choice.")
             print()
 
-        # Write patrons back to CSV (sanitize rows)
         fd, tmp_path = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
         os.close(fd)
         try:
@@ -1557,8 +1450,7 @@ class Staff(Person):
             if os.path.exists(tmp_path):
                 try: os.remove(tmp_path)
                 except Exception: pass
-        input("\nPress Enter to return to the menu...")
-
+    
 
 class Librarian(Staff):
     def __repr__(self):
@@ -1662,16 +1554,13 @@ class Librarian(Staff):
                 print("No assistants available.")
                 return
 
-            # compute column widths
             name_w = max(len('Name'), max((len(str(a.get('name',''))) for a in assistants), default=0))
             age_w = max(len('Age'), max((len(str(a.get('age',''))) for a in assistants), default=0))
             user_w = max(len('Username'), max((len(str(a.get('username',''))) for a in assistants), default=0))
 
-            # header
             print(f"{ 'Name'.ljust(name_w) }  { 'Age'.ljust(age_w) }  { 'Username'.ljust(user_w) }")
             print(f"{ '-'*name_w }  { '-'*age_w }  { '-'*user_w }")
 
-            # rows
             for assistant in assistants:
                 print(f"{ str(assistant.get('name','')).ljust(name_w) }  { str(assistant.get('age','')).ljust(age_w) }  { str(assistant.get('username','')).ljust(user_w) }")
 
@@ -1704,36 +1593,28 @@ class Librarian(Staff):
             new_patron = Community(name, age, library_number)
             print(f'Community member added with library number: {library_number}')
         elif choice == "4":
-            # Ensure age is <= 12 for Child; re-prompt safely on invalid input
             while age > 12:
                 print("Age exceeds the limit for Child patron type.")
                 try:
                     childd = int(input("Enter a valid age (12 or below): ").strip())
                 except ValueError:
                     print("Please enter a valid integer for age.")
-                    # keep age > 12 so the loop continues
                     age = 13
                     continue
                 age = childd
-                # loop will continue if childd > 12, otherwise break
             new_patron = Child(name, age, library_number)
             print(f'Child added with library number: {library_number}')
-        # ask for contact number and preferences (stored in CSV only)
         contact_number = input("Enter contact number(optional): ").strip()
         book_preferences = input("Enter book preferences:(optional) ").strip()
 
         with open('patron1.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
-            # CSV column order: name, age, library_number, fines,
-            # days_overdue, max_books_allowed, max_days_allowed,
-            # contact_number, book_preferences, borrowed_books, object
             writer.writerow([
                 new_patron.name, new_patron.age, new_patron.library_number, new_patron.fines,
                 new_patron.days_overdue, new_patron.max_books_allowed, new_patron.max_days_allowed,
                 contact_number, book_preferences, new_patron.borrowed_books, repr(new_patron)
             ])
         
-#REMOVE_PATRON HAS BEEN CHECKED THOROUGHLY 
     def remove_patron(self):#DONE
         clear_screen()
         current_user.show_patrons_info()
@@ -1790,7 +1671,6 @@ class Patron(Person):
         self.library_number=library_number
     def __repr__(self):
         return f'Patron({self.name}, {self.age}, {self.library_number})'
-        #ADD ATTRIBUTES AND METHODS COMMON IN PATRON TYPES
     
 class Student(Patron):
      def __init__(self, name, age, library_number):
@@ -1885,7 +1765,6 @@ def login_menu():#LOGIN MENU
         print("Exiting the system. Goodbye!")
         exit()
 
-    #add account method
 def librarian_menu():#MAIN MENU
     global current_user, current_client
     
@@ -2058,7 +1937,6 @@ def librarian_menu():#MAIN MENU
      if next_choice=='0':
         print("Thank you for using the Library Management System. Goodbye!")
         exit()
-    #OPTIONAL TRANSACTION HISTORY
 
     
 def assistant_menu():
@@ -2158,8 +2036,6 @@ def assistant_menu():
      if next_choice=='0':
         print("Thank you for using the Library Management System. Goodbye!")
         exit()  
-# Call the function to display the menu
-#TENTATIVE PA YUNG MGA NUMBER NG MENU BAKA KASI MAY MADAGDAG
 def menu_10_1():#MENU 5.1 ADD PATRON 
     print("Select Patron Type to Add:")
     print("1. Student")
@@ -2174,12 +2050,11 @@ def menu6_1():#MENU 6.1 EDIT BOOK STATUS
     print("3. Reserved")
     print("4. Lost")
 
-    #ILAGAY YUNG CURRENTUSER.ADDPATRON LATER ON
-#START OF CODE
 def starting_point():
  with open('librarian1.csv', mode='r', newline='') as file:
     if os.path.getsize('librarian1.csv') == 0 or len(file.readlines()) <= 1:
         first_menu()
     else:
         login_menu()
+
 starting_point()
