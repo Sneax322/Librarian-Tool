@@ -1166,187 +1166,7 @@ class Staff(Person):
             log_transaction('fine_payment', actor_username=getattr(self, 'username', ''), patron_library_number=library_number, bookID='', amount=payment, note=f"Payment of ${payment:.2f}")
         except Exception:
             pass
-    def report(self):
-        while True:
-            clear_screen()
-            print("===== Reports Menu =====\n")
-            print("1. Books Report")
-            print("2. Patrons Report")
-            print("3. Transactions Report")
-            print("4. Fines Report")
-            print("0. Back to Menu\n")
-            choice = input("Enter your choice (0-4): ").strip()
 
-            if choice == '1':
-                self._report_books()
-            elif choice == '2':
-                self._report_patrons()
-            elif choice == '3':
-                self._report_transactions()
-            elif choice == '4':
-                self._report_fines()
-            elif choice == '0':
-                return
-            else:
-                print("Invalid choice.")
-
-    def _report_books(self):
-        clear_screen()
-        print("===== Books Report =====\n")
-        try:
-            with open('books123.updated.csv', mode='r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                rows = list(reader)
-                if not rows:
-                    print("No books found.")
-                    return
-
-                total = len(rows)
-                available = sum(1 for r in rows if (r.get('Status') or '').lower() == 'available')
-                checked_out = sum(1 for r in rows if (r.get('Status') or '').lower() == 'checked out')
-
-                print(f"Total Books: {total}")
-                print(f"Available: {available}")
-                print(f"Checked Out: {checked_out}\n")
-
-                print("BookID    | Title                                      | ISBN         | Status       | Checkouts")
-                print("---------+--------------------------------------------+--------------+--------------+----------")
-                for r in rows[:50]: 
-                    bid = (r.get('bookID') or '')[:8].ljust(8)
-                    title = (r.get('title') or '')[:42].ljust(42)
-                    isbn = (r.get('isbn') or '')[:12].ljust(12)
-                    status = (r.get('Status') or '')[:12].ljust(12)
-                    checkouts = (r.get('Checkouts') or '0')
-                    print(f"{bid} | {title} | {isbn} | {status} | {checkouts}")
-                if len(rows) > 50:
-                    print(f"\n... and {len(rows) - 50} more books")
-
-        except Exception as e:
-            print(f"Error reading books: {e}")
-        input("\nPress Enter to return to the menu.")
-
-    def _report_patrons(self):
-        clear_screen()
-        print("===== Patrons Report =====\n")
-        try:
-            with open('patron1.csv', mode='r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                rows = list(reader)
-                if not rows:
-                    print("No patrons found.")
-                    return
-
-                total = len(rows)
-                with_fines = sum(1 for r in rows if float(r.get('fines', 0) or 0) > 0)
-                total_fines = sum(float(r.get('fines', 0) or 0) for r in rows)
-
-                print(f"Total Patrons: {total}")
-                print(f"Patrons with Fines: {with_fines}")
-                print(f"Total Fines Outstanding: ${total_fines:.2f}\n")
-
-                print("Name                    | Library no.  | Fines        | Borrowed | Days Overdue")
-                print("------------------------+-----------+--------------+----------+-----------")
-                for r in rows:
-                    name = (r.get('name') or '')[:24].ljust(24)
-                    lib = (r.get('library_number') or '')[:9].ljust(9)
-                    fines = f"${float(r.get('fines', 0) or 0):.2f}".ljust(12)
-                    borrowed = (r.get('borrowed_books') or '')
-                    try:
-                        b_count = len(json.loads(borrowed) if borrowed else {})
-                    except:
-                        b_count = 0
-                    borrowed_str = str(b_count).ljust(8)
-                    days_overdue = (r.get('days_overdue') or '0')
-                    print(f"{name} | {lib} | {fines} | {borrowed_str} | {days_overdue}")
-
-        except Exception as e:
-            print(f"Error reading patrons: {e}")
-        input("\nPress Enter to return to the menu.")
-
-    def _report_transactions(self):
-        clear_screen()
-        print("===== Transactions Report =====\n")
-        try:
-            recent = view_transactions(100)
-            if not recent:
-                print("No transactions found.")
-                return
-
-            lend_count = sum(1 for t in recent if t.get('type') == 'lend')
-            receive_count = sum(1 for t in recent if t.get('type') == 'receive')
-            payment_count = sum(1 for t in recent if t.get('type') == 'fine_payment')
-            total_paid = sum(float(t.get('amount', 0) or 0) for t in recent if t.get('type') == 'fine_payment')
-
-            print(f"Total Transactions: {len(recent)}")
-            print(f"Books Lent: {lend_count}")
-            print(f"Books Received: {receive_count}")
-            print(f"Fine Payments: {payment_count}")
-            print(f"Total Fines Collected: ${total_paid:.2f}\n")
-
-            patron_map = {}
-            try:
-                with open('patron1.csv', mode='r', newline='', encoding='utf-8') as pfile:
-                    preader = csv.DictReader(pfile)
-                    for pr in preader:
-                        key = (pr.get('library_number') or '').strip()
-                        if key:
-                            patron_map[key] = pr.get('name', '').strip()
-            except Exception:
-                pass
-
-            print("Date       | Type             | Patron                | Amount")
-            print("-----------+------------------+-----------------------+---------")
-            for t in recent[-20:]: 
-                ts_raw = t.get('timestamp', '')
-                ts = ''
-                if ts_raw:
-                    try:
-                        ts = datetime.datetime.fromisoformat(ts_raw).date().isoformat()
-                    except:
-                        ts = ts_raw[:10]
-                ttype = (t.get('type', '') or '')[:16].ljust(16)
-                patron_key = (t.get('patron_library_number', '') or '').strip()
-                if patron_key and patron_key in patron_map:
-                    patron_display = f"{patron_map[patron_key]}({patron_key})"[:21].ljust(21)
-                else:
-                    patron_display = (patron_key or '')[:21].ljust(21)
-                amount = t.get('amount', '') or ''
-                print(f"{ts} | {ttype} | {patron_display} | {amount}")
-
-        except Exception as e:
-            print(f"Error reading transactions: {e}")
-        input("\nPress Enter to return to the menu.")
-
-    def _report_fines(self):
-        clear_screen()
-        print("===== Fines Report =====\n")
-        try:
-            with open('patron1.csv', mode='r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                rows = list(reader)
-                fines_rows = [r for r in rows if float(r.get('fines', 0) or 0) > 0]
-
-                if not fines_rows:
-                    print("No patrons with outstanding fines.")
-                    return
-
-                total_fines = sum(float(r.get('fines', 0) or 0) for r in fines_rows)
-
-                print(f"Patrons with Outstanding Fines: {len(fines_rows)}")
-                print(f"Total Fines: ${total_fines:.2f}\n")
-
-                print("Name                    | Library no.  | Fines        | Days Overdue")
-                print("------------------------+-----------+--------------+----------")
-                for r in sorted(fines_rows, key=lambda x: float(x.get('fines', 0) or 0), reverse=True):
-                    name = (r.get('name') or '')[:24].ljust(24)
-                    lib = (r.get('library_number') or '')[:9].ljust(9)
-                    fines = f"${float(r.get('fines', 0) or 0):.2f}".ljust(12)
-                    days_overdue = (r.get('days_overdue') or '0')
-                    print(f"{name} | {lib} | {fines} | {days_overdue}")
-
-        except Exception as e:
-            print(f"Error reading fines: {e}")
-        input("\nPress Enter to return to the menu.")
     def view_transactions(self):
         clear_screen()
         print("Recent Transactions")
@@ -1422,6 +1242,9 @@ class Staff(Person):
                     s = s[:max(0, w-3)] + '...'
                 out.append(s.ljust(w))
             print(' | '.join(out))
+
+    def report(self):
+        generate_library_report()
     @classmethod
     def show_patrons_info(cls):
         with open('patron1.csv', mode='r', newline='') as file:
@@ -1836,7 +1659,124 @@ class Child(Patron):
         super().__init__(name, age, library_number, max_books_allowed=2, max_days_allowed=15)
     def __repr__(self):
         return f'Child({self.name},{self.age})'
+
+class Report:
+    def __init__(self, title, date=None):
+        self.title = title
+        self.date = date if date is not None else datetime.date.today()
+        self.contents = []
+
+    def add_content(self, content):
+        self.contents.append(content)
+
+    def generate(self):
+        body = []
+        for s in self.contents:
+            body.append(s.generate())
+        return "\n".join(body)
+
+
+class Reports:
+    def __init__(self, name):
+        self.name = name
+
+    def generate(self):
+        pass  
+
+class Inventory(Reports):
+    def __init__(self, books=BOOKS_PATH):
+        super().__init__('Inventory Summary')
+        self.books = BOOKS_PATH
+  
+
+    def generate(self):
+        rows = read(self.books)
+        total = len(rows)
+
+        circulated = sum(1 for r in rows if to_int((r.get('Checkouts') or 0)) > 0)
+        circulation_rate = round((circulated / total) * 100, 2) if total > 0 else 0.0
+
+        ages = []
+        current_year = datetime.date.today().year
+        for r in rows:
+            try:
+                year = int(r.get('publication_year') or 0)
+                ages.append(current_year - year)
+            except Exception:
+                continue
+
+        average_age = round(sum(ages) / len(ages), 2) if ages else 0.0
+        weeding = sum(1 for i in ages if i > 10)
+
+        return (f"Inventory Summary:\n"
+                f"Total Books: {total}\n"
+                f"Circulation Rate: {circulation_rate}%\n"
+                f"Average Book Age: {average_age} years\n"
+                f"Books Eligible for Weeding (>10 years): {weeding}\n")
+
+class Circulation(Reports):
+    def __init__(self, transactions=TRANSACTIONS_PATH):
+        super().__init__('Circulation Activity')
+        self.transactions = transactions
+
+    def generate(self):
+        rows = read(self.transactions)
+        
+        total_checkouts = sum(int(r.get('Checkouts') or 0) for r in rows)
+
+        most_checked_out = max(rows, key=lambda r: int(r.get('Checkouts') or 0), default=None)
+        most_checked_out_info = (f"Most Checked Out Book: {most_checked_out.get('title', 'N/A')} (Checkouts: {most_checked_out.get('Checkouts', '0')})"
+                                 if most_checked_out else "Most Checked Out Book: N/A")
+        return (f"Circulation Activity:\n"
+                f"Total Checkouts: {total_checkouts}\n"
+                f"{most_checked_out_info}\n")
     
+class PatronReport(Reports):
+    def __init__(self, patrons=PATRONS_PATH):
+        super().__init__('Patron Report')
+        self.patrons = patrons
+
+    def generate(self):
+        rows = read(self.patrons)
+        
+        active_patrons = 0
+        total_items = 0
+
+        for r in rows:
+            try:
+                borrowed = json.loads(r.get('borrowed_books') or '{}')
+                if borrowed:
+                    active_patrons += 1
+                    total_items += len(borrowed)
+            except Exception:
+                continue
+    
+        average_items = round(total_items / active_patrons, 2) if active_patrons > 0 else 0.0
+
+        return (f"Patron Report:\n"
+                f"Active Patrons: {active_patrons}\n"
+                f"Average Items Borrowed per Active Patron: {average_items}\n")
+    
+class Finance(Reports):
+    def __init__(self, patrons=PATRONS_PATH):
+        super().__init__('Financial Report')
+        self.patrons = patrons
+
+    def generate(self):
+        rows = read(self.patrons)
+        
+        total_fines = 0.0
+
+        for r in rows:
+            try:
+                fines = float(r.get('fines') or 0.0)
+                total_fines += fines
+            except Exception:
+                continue
+
+        return (f"Financial Report:\n"
+                f"Total Outstanding Fines: ${total_fines:.2f}\n")
+
 def first_menu():
     global current_user
     print("Welcome to the Library Management System")
@@ -1851,8 +1791,28 @@ def first_menu():
     clear_screen()
     librarian_menu()
     
-            
-            
+def read(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        return list(reader)           
+
+def generate_library_report():
+    report = Report("Sample Library Report", "January 2024")
+
+    report.add_content(Circulation())
+    report.add_content(PatronReport())
+    report.add_content(Inventory())
+    report.add_content(Finance())
+
+    print("\n" + report.generate())
+
+def to_int(value, default=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 def login_menu():
     global current_user
@@ -2053,7 +2013,7 @@ def librarian_menu():
         
      if next_choice=='15':
         clear_screen()
-        current_user.report()
+        generate_library_report()
         enter=input("\nPress Enter to return to the menu.")
         clear_screen()
         continue
