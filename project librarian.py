@@ -413,147 +413,206 @@ class Staff(Person):
         print("Password changed successfully.")
 
     def add_book(self):
-        clear_screen()
-        print("Add a book")
-        title = input("Enter book title: ")
-        authors = input("Enter book author(s): ")
-        isbn = input("Enter book ISBN: ")
-        
-        for book in books:
-            if book.isbn == isbn:
-                print("Book with this ISBN already exists in the library.")
+        books = read(BOOKS_PATH)
+        print("Add New Book")
+
+        while True:
+            title = input("Enter book title (or B to cancel): ").strip()
+            if not title or title.lower() == 'b':
+                print("Aborted.")
                 return
+            
+            authors = input("Enter authors (comma-separated): ").strip()
 
-        isbn13 = input("Enter book ISBN-13: ")
-        language_code = input("Enter book language code: ")
-        
-        try:
-            num_pages = int(input("Enter number of pages: "))
-        except ValueError:
-            num_pages = 0
+            while True:
+                isbn = input("Enter ISBN: ").strip()
+                isbn13 = input("Enter ISBN13: ").strip()
 
-        try:
-            ratings_count = int(input("Enter ratings count: "))
-        except ValueError:
-            ratings_count = 0
-
-        try:
-            text_reviews_count = int(input("Enter text reviews count: "))
-        except ValueError:
-            text_reviews_count = 0
-
-        publication_date = input("Enter book publication date: ")
-        publisher = input("Enter book publisher: ")
-
-        max_book_id = 0
-        with open('books123.updated.csv', mode='r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                try:
-                    book_id = int(row.get('bookID', 0))
-                    if book_id > max_book_id:
-                        max_book_id = book_id
-                except ValueError:
+                if not isbn and not isbn13:
+                    print("At least one of ISBN or ISBN13 must be provided.")
                     continue
 
-        next_book_id = max_book_id + 1
-
-        new_book = Book(title, authors, 0.0, isbn, isbn13, language_code, num_pages, ratings_count, text_reviews_count, publication_date, publisher)
-        books.append(new_book)
-
-        with open('books123.updated.csv', mode='a', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=['bookID', 'title', 'authors', 'average_rating', 'isbn', 'isbn13', 'language_code', 'num_pages', 'ratings_count', 'text_reviews_count', 'publication_date', 'publisher', 'Status', 'Checkouts'])
-            writer.writerow({
-                'bookID': next_book_id,
-                'title': title,
-                'authors': authors,
-                'average_rating': 0.0,
-                'isbn': isbn,
-                'isbn13': isbn13,
-                'language_code': language_code,
-                'num_pages': num_pages,
-                'ratings_count': ratings_count,
-                'text_reviews_count': text_reviews_count,
-                'publication_date': publication_date,
-                'publisher': publisher,
-                'Status': 'Available',
-                'Checkouts': 0
-            })
-
-        print(f"Book '{title}' added successfully with Book ID: {next_book_id}!")
-        
-    def remove_book(self):
-        import shutil, os, csv, tempfile
-        s = 'books123.updated.csv'
-        if not os.path.exists(s):
-            print("Books file not found.")
-            return
-
-        book_id = input("Enter Book ID to remove (or B to cancel): ").strip()
-        if not book_id or book_id.lower() == 'b':
-            print("Aborted.")
-            return
-
-        bak = s + '.bak'
-        try:
-            shutil.copy2(s, bak)
-        except Exception:
-            pass
-
-        with open(s, mode='r', encoding='utf-8', newline='') as f:
-            reader = csv.reader(f)
-            try:
-                header = next(reader)
-            except StopIteration:
-                print("CSV is empty.")
-                return
-            rows = [row for row in reader]
-
-        column_id = 0
-        for i, h in enumerate(header):
-            if h and h.strip().lower() == 'bookid':
-                column_id = i
+                is_duplicate = False
+                for b in books:
+                    if isbn and b['isbn'] == isbn:
+                        print("A book with this ISBN already exists.")
+                        is_duplicate = True
+                        break
+                    if isbn13 and b['isbn13'] == isbn13:
+                        print("A book with this ISBN13 already exists.")
+                        is_duplicate = True
+                        break
+                if is_duplicate:
+                    continue
                 break
 
-        matches = [ (i, r) for i, r in enumerate(rows) if len(r) > column_id and r[column_id].strip() == book_id ]
-        if not matches:
-            print(f"Book ID '{book_id}' not found.")
-            return
+            language_code = input("Enter language code ('en' is default): ").strip()
+            if not language_code:
+                language_code = 'en'
+            
+            publisher = input("Enter publisher: ").strip()
+            publication_date = input("Enter publication date (MM/DD/YYYY): ").strip()
 
-        column_title = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'title'), None)
-        column_isbn  = next((i for i,h in enumerate(header) if h and h.strip().lower() == 'isbn'), None)
-        for indexx, r in matches:
-            title = r[column_title] if column_title is not None and column_title < len(r) else ''
-            isbn =  r[column_isbn]  if column_isbn  is not None and column_isbn  < len(r) else ''
-            print(f"  row_index={indexx}  bookID={r[column_id]}  title={title[:80]}  isbn={isbn}")
+            try:
+                num_pages = int(input("Enter number of pages: ").strip())
+            except ValueError:
+                num_pages = 0
 
-        if input("Confirm removal of these record(s)? (y/N): ").strip().lower() != 'y':
+            try:
+                average_rating = float(input("Enter average rating (0.0 - 5.0): ").strip())
+            except ValueError:
+                average_rating = 0.0
+
+            try:    
+                ratings_count = int(input("Enter ratings count: ").strip())
+            except ValueError:
+                ratings_count = 0
+
+            try:
+                text_reviews_count = int(input("Enter text reviews count: ").strip())  
+            except ValueError:
+                text_reviews_count = 0
+
+            
+            rows = read(BOOKS_PATH)
+            max_id = 0
+
+            for row in rows:
+                try:
+                    if 'bookID' in row and row['bookID'].strip().isdigit():
+                        book_id = int(row['bookID'].strip())
+                        if book_id > max_id:
+                            max_id = book_id
+                except (ValueError, KeyError):
+                    continue
+            
+            new_book_id = max_id + 1
+            print(f"Assigned Book ID: {new_book_id}")
+
+            fieldnames = [
+        'bookID', 'title', 'authors', 'average_rating', 'isbn', 'isbn13',
+        'language_code', 'num_pages', 'ratings_count', 'text_reviews_count',
+        'publication_date', 'publisher', 'Status', 'Checkouts'
+    ]
+            new_book = {
+            'bookID': new_book_id,
+            'title': title,
+            'authors': authors,
+            'average_rating': average_rating,
+            'isbn': isbn,
+            'isbn13': isbn13,
+            'language_code': language_code,
+            'num_pages': num_pages,
+            'ratings_count': ratings_count,
+            'text_reviews_count': text_reviews_count,
+            'publication_date': publication_date,
+            'publisher': publisher,
+            'Status': 'Available',
+            'Checkouts': 0
+    }
+            try:
+                with open(BOOKS_PATH, mode='a', encoding='utf-8', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    if os.path.getsize(BOOKS_PATH) == 0:
+                        writer.writeheader()
+                    writer.writerow(new_book)
+                print("Book added successfully with Book ID:", new_book_id)
+            except Exception as e:
+                print("Error adding book:", str(e))
+                return
+            
+            try:
+                new_book_obj = Book(
+                title, authors, average_rating, isbn, isbn13, 
+                language_code, num_pages, ratings_count, 
+                text_reviews_count, publication_date, publisher
+            )
+                books.append(new_book_obj)
+            except Exception as e:
+                print("Error creating book object:", str(e))
+
+            break
+        
+
+        
+    def remove_book(self):
+        import csv, os, tempfile, shutil
+
+        print("Remove a Book")
+
+        book_id_to_remove = input("Enter Book ID to remove (or B to cancel): ").strip()
+        if not book_id_to_remove or book_id_to_remove.lower() == 'b':
             print("Aborted.")
             return
 
-        remove_indices = {i for i, _ in matches}
-        updated_rows = [r for i, r in enumerate(rows) if i not in remove_indices]
+        if not book_id_to_remove.isdigit():
+            print("Invalid Book ID.")
+            return
 
-        fd, tmp = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
-        os.close(fd)
+        found_title = None
+        temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, newline='', encoding='utf-8')
+        removed = False
+
         try:
-            with open(tmp, mode='w', encoding='utf-8', newline='') as out:
-                writer = csv.writer(out)
-                writer.writerow([h for h in header if h is not None])
-                writer.writerows(updated_rows)
-            os.replace(tmp, s)
-        finally:
-            if os.path.exists(tmp):
-                os.remove(tmp)
+            with open(BOOKS_PATH, mode='r', encoding='utf-8', newline='') as f, temp_file:
+                reader = csv.DictReader(f)
+                writer = csv.DictWriter(temp_file, fieldnames=reader.fieldnames)
+                writer.writeheader()
 
-        removed_isbns = set()
-        for _, r in matches:
-            if column_isbn is not None and column_isbn < len(r):
-                removed_isbns.add(r[column_isbn].strip())
-        global books
-        books[:] = [b for b in books if (b.isbn or '').strip() not in removed_isbns]
+                for row in reader:
+                    if (row.get('bookID') or '').strip() == book_id_to_remove:
+                        found_title = row.get('title', '')
+                        removed = True
+                        continue
+                    writer.writerow(row)
 
-        print(f"Removed {len(remove_indices)} record(s).")
+            if not removed:
+                os.remove(temp_file.name)
+                print(f"No book found with Book ID {book_id_to_remove}.")
+                return
+
+            confirm = input(
+                f"Are you sure you want to remove '{found_title}' (Book ID: {book_id_to_remove})? (y/N): "
+            ).strip().lower()
+
+            if confirm != 'y':
+                os.remove(temp_file.name)
+                print("Removal cancelled.")
+                return
+
+            shutil.move(temp_file.name, BOOKS_PATH)
+            print(f"✓ Book ID {book_id_to_remove} removed successfully.")
+
+        except Exception as e:
+            if os.path.exists(temp_file.name):
+                os.remove(temp_file.name)
+            print("Error removing book:", e)
+            return
+
+        _books.clear()
+        with open(BOOKS_PATH, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                try:
+                    _books.append(Book(
+                        r.get('title',''),
+                        r.get('authors',''),
+                        float(r.get('average_rating') or 0),
+                        r.get('isbn',''),
+                        r.get('isbn13',''),
+                        r.get('language_code',''),
+                        int(r.get('num_pages') or 0),
+                        int(r.get('ratings_count') or 0),
+                        int(r.get('text_reviews_count') or 0),
+                        r.get('publication_date',''),
+                        r.get('publisher','')
+                    ))
+                except Exception:
+                    pass
+
+
+
+
     def delete_own_account(self):
         clear_screen()
         username = self.username
