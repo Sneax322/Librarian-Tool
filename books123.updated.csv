@@ -11134,4 +11134,5 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 45648,8,8,0.0,8,8,8,8,8,8,8,8,Available,0
 45649,1,32,0.0,32,32,32,32,32,32,32,32,Checked Out,1
 45650,a,a,0.0,a,a,a,0,0,0,a,a,Available,1
-45651,7,7,7.0,7,7,7,7,7,7,7,7,Available,0
+45651,7,7,7.0,7,7,7,7,7,7,7,7,Available,1
+45652,Most Checked Out Book of All Time,Ako,0.0,123456789,1234567890,en,0,0,0,,,Checked Out,70

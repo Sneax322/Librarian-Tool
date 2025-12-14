@@ -641,350 +641,194 @@ class Staff(Person):
                 print(f'Account with username {username} deleted successfully.')
             else:
                 print(f'Account with username {username} not found.')
-    def add_fines(self,patron):
-        pass
-    def calculate_fines(self,patron):
-        pass
+
     def calculate_overdue_fines(self):
-        import os, csv, json, datetime, tempfile, shutil
+        import csv, json, datetime, tempfile, shutil, os
+
         clear_screen()
         print("Calculate Overdue Fines")
-        
+
         patron_path = 'patron1.csv'
-        if not os.path.exists(patron_path):
-            print("Patron file not found.")
-            return
-        
-        with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            raw_fieldnames = reader.fieldnames or []
-            fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
-            patrons = list(reader)
-        
+        fine_per_day = 5
         today = datetime.date.today()
-        fine_per_day = 5.0
-        total_fines_added = 0.0
-        
-        print(f"Checking overdue books for {len(patrons)} patron(s)...\n")
-        
-        for patron in patrons:
-            bb_raw = patron.get('borrowed_books', '{}')
-            borrowed = {}
+
+        with open(patron_path, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
+            patrons = list(reader)
+            fieldnames = reader.fieldnames
+
+        for p in patrons:
             try:
-                borrowed = json.loads(bb_raw) if bb_raw else {}
+                borrowed = json.loads(p.get('borrowed_books') or '{}')
             except Exception:
                 borrowed = {}
-            
-            if not borrowed:
-                continue
-            
-            try:
-                current_fines = float(patron.get('fines', 0))
-            except ValueError:
-                current_fines = 0.0
-            
-            overdue_books = {}
-            patron_fines_added = 0.0
-            
-            for isbn_key, book_info in borrowed.items():
-                if isinstance(book_info, dict):
-                    due_date_str = book_info.get('due_date', '')
-                    if due_date_str:
-                        try:
-                            due_date = datetime.date.fromisoformat(due_date_str)
-                            if today > due_date:
-                                days_overdue = (today - due_date).days
-                                fine_amount = days_overdue * fine_per_day
-                                
-                                overdue_books[isbn_key] = {
-                                    'bookID': book_info.get('bookID', ''),
-                                    'title': book_info.get('title', 'Unknown'),
-                                    'checkout_date': book_info.get('checkout_date', ''),
-                                    'due_date': due_date_str,
-                                    'days_overdue': days_overdue,
-                                    'fine': fine_amount
-                                }
-                                patron_fines_added += fine_amount
-                        except (ValueError, TypeError):
-                            continue
-            
-            if overdue_books:
-                new_fines = current_fines + patron_fines_added
-                patron['fines'] = str(new_fines)
-                patron['overdue_books'] = json.dumps(overdue_books)
-                
-                print(f"Patron: {patron.get('name')} (Library no: {patron.get('library_number')})")
-                for isbn_key, book in overdue_books.items():
-                    print(f"  📚 {book['title']}")
-                    print(f"     Due: {book['due_date']} | Days Late: {book['days_overdue']} | Fine: ${book['fine']:.2f}")
-                print(f"  Total Fine Added: ${patron_fines_added:.2f} | New Total: ${new_fines:.2f}\n")
-                
-                total_fines_added += patron_fines_added
-        
-        if total_fines_added > 0:
-            fd, tmp_path = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
-            os.close(fd)
-            
-            with open(tmp_path, mode='w', newline='', encoding='utf-8') as out:
-                writer = csv.DictWriter(out, fieldnames=fieldnames)
-                writer.writeheader()
-                sanitized_patrons = []
-                for p in patrons:
-                    clean_patron = {fn: (p.get(fn, '') if p.get(fn) is not None else '') for fn in fieldnames}
-                    sanitized_patrons.append(clean_patron)
-                writer.writerows(sanitized_patrons)
-            
-            shutil.move(tmp_path, patron_path)
-            print(f"✓ Total fines calculated and added: ${total_fines_added:.2f}")
-        else:
-            print("✓ No overdue books found. All patrons are current on their loans.")
-        
+
+            total_days_overdue = 0
+            total_fine = 0
+
+            for info in borrowed.values():
+                try:
+                    due = datetime.date.fromisoformat(info.get('due_date', ''))
+                except Exception:
+                    continue
+
+                if today > due:
+                    days = (today - due).days
+                    total_days_overdue += days
+                    total_fine += days * fine_per_day
+
+            p['days_overdue'] = str(total_days_overdue)
+            p['fines'] = str(float(p.get('fines') or 0) + total_fine)
+
+        fd, tmp = tempfile.mkstemp()
+        os.close(fd)
+        with open(tmp, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(patrons)
+        shutil.move(tmp, patron_path)
+
+        print("✓ Overdue fines calculated.")
 
             
     def lend_book(self):
-        import os, csv, json, datetime, tempfile, shutil
+        import csv, json, datetime, tempfile, shutil, os
 
         clear_screen()
         print("Lend a Book")
 
-        lib_input = input("Enter patron library number (or B to cancel): ").strip()
-        if not lib_input or lib_input.lower() == 'b':
-            return
-
-        try:
-            library_number = int(lib_input)
-        except ValueError:
-            print("Invalid library number.")
+        lib_no = input("Enter patron library number (or B to cancel): ").strip()
+        if not lib_no or lib_no.lower() == 'b':
             return
 
         patron_path = 'patron1.csv'
-        if not os.path.exists(patron_path):
-            print("Patron file not found.")
-            return
-
-        with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            raw_fieldnames = reader.fieldnames or []
-            fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
+        with open(patron_path, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
             patrons = list(reader)
+            fieldnames = reader.fieldnames
 
-        patron = None
-        for p in patrons:
-            try:
-                if int(p.get('library_number', -1)) == library_number:
-                    patron = p
-                    break
-            except ValueError:
-                continue
-
+        patron = next((p for p in patrons if p.get('library_number') == lib_no), None)
         if not patron:
             print("Patron not found.")
             return
 
-        borrowed = {}
-        raw_borrowed = patron.get('borrowed_books', '{}')
-
         try:
-            borrowed = json.loads(raw_borrowed) if raw_borrowed else {}
+            borrowed = json.loads(patron.get('borrowed_books') or '{}')
         except Exception:
             borrowed = {}
 
-        try:
-            max_books = int(patron.get('max_books_allowed', 0))
-        except ValueError:
-            max_books = 0
-
-        if max_books and len(borrowed) >= max_books:
-            print(f"Patron already reached max borrowed books ({max_books}).")
+        if len(borrowed) >= int(patron.get('max_books_allowed') or 0):
+            print("Borrowing limit reached.")
             return
 
-        book_id = input("Enter Book ID to lend (or B to cancel): ").strip()
-        if not book_id or book_id.lower() == 'b':
+        book_id = input("Enter Book ID to lend: ").strip()
+        if not book_id:
             return
 
-        books_path = 'books123.updated.csv'
-        if not os.path.exists(books_path):
-            print("Books file not found.")
-            return
-
-        with open(books_path, mode='r', newline='', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
+        with open(BOOKS_PATH, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
+            books = list(reader)
             book_fields = reader.fieldnames
-            books_rows = list(reader)
 
-        book = None
-        for b in books_rows:
-            if b.get('bookID') == book_id:
-                book = b
-                break
-
+        book = next((b for b in books if (b.get('bookID') or '').strip() == book_id), None)
         if not book:
             print("Book not found.")
             return
 
-        if book.get('Status', '').lower() == 'checked out':
-            print("Book is already checked out.")
+        if (book.get('Status') or '').lower() == 'checked out':
+            print("Book already checked out.")
             return
 
-        book['Status'] = 'Checked Out'
-        try:
-            book['Checkouts'] = str(int(book.get('Checkouts', 0)) + 1)
-        except ValueError:
-            book['Checkouts'] = '1'
-
-        fd, tmp = tempfile.mkstemp()
-        os.close(fd)
-
-        with open(tmp, mode='w', newline='', encoding='utf-8') as out:
-            writer = csv.DictWriter(out, fieldnames=book_fields)
-            writer.writeheader()
-            writer.writerows(books_rows)
-
-        shutil.move(tmp, books_path)
-
         today = datetime.date.today()
+        max_days = int(patron.get('max_days_allowed') or 0)
+        due_date = (today + datetime.timedelta(days=max_days)).isoformat()
 
-        try:
-            max_days = int(patron.get('max_days_allowed', 0))
-        except (ValueError, TypeError):
-            max_days = 0
-
-        due_date = (today + datetime.timedelta(days=max_days)).isoformat() if max_days else ""
-
-        isbn_key = book.get('isbn') or book.get('isbn13') or book_id
-
-        borrowed[isbn_key] = {
-            "bookID": book_id,
+        borrowed[book_id] = {
             "title": book.get("title", ""),
-            "checkout_date": today.isoformat(),
-            "due_date": due_date,
-            "isbn": book.get("isbn", "")
+            "borrowed_date": today.isoformat(),
+            "due_date": due_date
         }
 
         patron['borrowed_books'] = json.dumps(borrowed)
 
-        fd2, tmp2 = tempfile.mkstemp()
-        os.close(fd2)
+        book['Status'] = 'Checked Out'
+        book['Checkouts'] = str(int(book.get('Checkouts') or 0) + 1)
 
-        with open(tmp2, mode='w', newline='', encoding='utf-8') as out:
-            writer = csv.DictWriter(out, fieldnames=fieldnames)
+        fd, tmp = tempfile.mkstemp()
+        os.close(fd)
+        with open(tmp, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=book_fields)
             writer.writeheader()
-            sanitized_patrons = []
-            for p in patrons:
-                clean_patron = {fn: (p.get(fn, '') if p.get(fn) is not None else '') for fn in fieldnames}
-                sanitized_patrons.append(clean_patron)
-            writer.writerows(sanitized_patrons)
+            writer.writerows(books)
+        shutil.move(tmp, BOOKS_PATH)
 
-        shutil.move(tmp2, patron_path)
+        fd, tmp = tempfile.mkstemp()
+        os.close(fd)
+        with open(tmp, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(patrons)
+        shutil.move(tmp, patron_path)
 
-        print("\n✓ Book successfully lent!")
-        print(f"Patron : {patron.get('name')}")
-        print(f"Book   : {book.get('title')}")
-        print(f"Date   : {today.isoformat()}")
-        print(f"Due    : {due_date if due_date else 'No limit'}")
-        try:
-            log_transaction('lend', actor_username=getattr(self, 'username', ''), patron_library_number=library_number, bookID=book_id, amount=0.0, note=f"Lent '{book.get('title','')}'")
-        except Exception:
-            pass
+        print("✓ Book lent successfully.")
+
 
     def receive_book(self):
-        import tempfile, os, csv, json, datetime
+        import csv, json, tempfile, shutil, os
+
         clear_screen()
-        print("Receive a Returned Book")
-        
-        book_id = input("Enter Book ID being returned (or B to cancel): ").strip()
-        if not book_id or book_id.lower() == 'b':
-            print("Aborted.")
+        print("Receive Returned Book")
+
+        book_id = input("Enter Book ID: ").strip()
+        if not book_id:
             return
 
-        books_path = 'books123.updated.csv'
-        if not os.path.exists(books_path):
-            print("Books file not found.")
+        with open(BOOKS_PATH, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
+            books = list(reader)
+            fields = reader.fieldnames
+
+        book = next((b for b in books if (b.get('bookID') or '').strip() == book_id), None)
+        if not book:
+            print("Book not found.")
             return
 
-        with open(books_path, mode='r', encoding='utf-8', newline='') as bfile:
-            breader = csv.DictReader(bfile)
-            raw_b_fieldnames = breader.fieldnames or ['bookID','title','authors','average_rating','isbn','isbn13','language_code','num_pages','ratings_count','text_reviews_count','publication_date','publisher','Status','Checkouts']
-            b_fieldnames = [fn for fn in raw_b_fieldnames if fn and str(fn).strip()]
-            books_rows = list(breader)
+        book['Status'] = 'Available'
 
-        match = None
-        for row in books_rows:
-            if (row.get('bookID') or '').strip() == book_id:
-                match = row
-                break
-        if not match:
-            print(f"Book ID {book_id} not found.")
-            return
-
-        status = (match.get('Status') or match.get('status') or '').strip()
-        if status.lower() == 'available':
-            print("Book is already available (not checked out).")
-            return
-
-        match['Status'] = 'Available'
-
-        fd, tmp_path = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
+        fd, tmp = tempfile.mkstemp()
         os.close(fd)
-        try:
-            with open(tmp_path, mode='w', encoding='utf-8', newline='') as out:
-                writer = csv.DictWriter(out, fieldnames=b_fieldnames)
-                writer.writeheader()
-                sanitized_rows = []
-                for row in books_rows:
-                    clean_row = {fn: (row.get(fn, '') if row.get(fn) is not None else '') for fn in b_fieldnames}
-                    sanitized_rows.append(clean_row)
-                writer.writerows(sanitized_rows)
-            os.replace(tmp_path, books_path)
-        finally:
-            if os.path.exists(tmp_path):
-                try: os.remove(tmp_path)
-                except Exception: pass
+        with open(tmp, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(books)
+        shutil.move(tmp, BOOKS_PATH)
 
-        p_path = 'patron1.csv'
-        if os.path.exists(p_path):
-            with open(p_path, mode='r', encoding='utf-8', newline='') as pfile:
-                preader = csv.DictReader(pfile)
-                p_fieldnames = preader.fieldnames or ['name','age','library_number','fines','days_overdue','max_books_allowed','max_days_allowed','contact_number','book_preferences','borrowed_books','object']
-                patrons = list(preader)
+        patron_path = 'patron1.csv'
+        with open(patron_path, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
+            patrons = list(reader)
+            p_fields = reader.fieldnames
 
-            isbn_key = (match.get('isbn') or '').strip()
-            removed = False
-            for p in patrons:
-                bb_raw = p.get('borrowed_books') or '{}'
-                try:
-                    borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) else borrowed
-                except Exception:
-                    try:
-                        import ast
-                        borrowed = ast.literal_eval(bb_raw)
-                    except Exception:
-                        borrowed = {}
-                
-                if isbn_key in borrowed:
-                    del borrowed[isbn_key]
-                    p['borrowed_books'] = json.dumps(borrowed)
-                    removed = True
+        for p in patrons:
+            try:
+                borrowed = json.loads(p.get('borrowed_books') or '{}')
+            except Exception:
+                borrowed = {}
 
-            if removed:
-                fd2, tmp2 = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
-                os.close(fd2)
-                try:
-                    with open(tmp2, mode='w', encoding='utf-8', newline='') as p_out:
-                        writer = csv.DictWriter(p_out, fieldnames=p_fieldnames)
-                        writer.writeheader()
-                        writer.writerows(patrons)
-                    os.replace(tmp2, p_path)
-                finally:
-                    if os.path.exists(tmp2):
-                        try: os.remove(tmp2)
-                        except Exception: pass
+            if book_id in borrowed:
+                del borrowed[book_id]
+                p['borrowed_books'] = json.dumps(borrowed)
 
-        print(f"Book ID {book_id} received and marked Available.")
-        try:
-            log_transaction('receive', actor_username=getattr(self, 'username', ''), patron_library_number='', bookID=book_id, amount=0.0, note=f"Received return of bookID {book_id}")
-        except Exception:
-            pass
+        fd, tmp = tempfile.mkstemp()
+        os.close(fd)
+        with open(tmp, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=p_fields)
+            writer.writeheader()
+            writer.writerows(patrons)
+        shutil.move(tmp, patron_path)
+
+        print("✓ Book returned successfully.")
+
     def edit_book_status(self):
         import tempfile, os, csv, shutil
         clear_screen()
@@ -1065,166 +909,64 @@ class Staff(Person):
         print(f"\n✓ Book ID {book_id} status updated from '{current_status}' to '{new_status}'.")
     
     def receive_fines_from_patron(self):
-        import os, csv, datetime, tempfile, shutil
+        import csv, tempfile, shutil, os
+
+        global _fines_collected   # ✅ REQUIRED
+
         clear_screen()
-        print("Receive Fines from Patron")
-        
-        lib_input = input("Enter patron library number (or B to cancel): ").strip()
-        if not lib_input or lib_input.lower() == 'b':
-            print("Aborted.")
+        print("Receive Fines From Patron")
+
+        lib_no = input("Enter patron library number (or B to cancel): ").strip()
+        if not lib_no or lib_no.lower() == 'b':
             return
-        
-        try:
-            library_number = int(lib_input)
-        except ValueError:
-            print("Invalid library number.")
-            return
-        
+
         patron_path = 'patron1.csv'
-        if not os.path.exists(patron_path):
-            print("Patron file not found.")
-            return
-        
-        with open(patron_path, mode='r', newline='', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            raw_fieldnames = reader.fieldnames or []
-            fieldnames = [fn for fn in raw_fieldnames if fn and str(fn).strip()]
+        with open(patron_path, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
             patrons = list(reader)
-        
-        patron = None
-        for p in patrons:
-            try:
-                if int(p.get('library_number', -1)) == library_number:
-                    patron = p
-                    break
-            except ValueError:
-                continue
-        
+            fieldnames = reader.fieldnames
+
+        patron = next((p for p in patrons if p.get('library_number') == lib_no), None)
         if not patron:
-            print(f"Patron with library number {library_number} not found.")
+            print("Patron not found.")
             return
-        
+
         try:
-            current_fines = float(patron.get('fines', 0))
-        except Exception:
+            current_fines = float(patron.get('fines') or 0)
+        except ValueError:
             current_fines = 0.0
-        raw_overdue = patron.get('overdue_books', '{}')
+
+        print(f"Current fines: ₱{current_fines:.2f}")
+
         try:
-            overdue_entries = json.loads(raw_overdue) if raw_overdue else {}
-        except Exception:
-            overdue_entries = {}
-        
-        print(f"\nPatron Information:")
-        print(f"  Name: {patron.get('name', '')}")
-        print(f"  Library Number: {library_number}")
-        print(f"  Current Fines: ${current_fines:.2f}")
-        print("\n(Overdue book computation is handled in the transaction menu.)")
-        
-        if current_fines <= 0:
-            print("\n  Patron has no outstanding fines.")
+            payment = float(input("Enter payment amount: ").strip())
+        except ValueError:
+            print("Invalid payment.")
             return
-        
-        while True:
-            try:
-                payment = float(input(f"\nEnter payment amount (max ${current_fines:.2f}): ").strip())
-                if payment < 0:
-                    print("Payment amount cannot be negative.")
-                    continue
-                if payment > current_fines:
-                    print(f"Payment exceeds outstanding fines (${current_fines:.2f}).")
-                    continue
-                break
-            except ValueError:
-                print("Invalid amount. Please enter a valid number.")
-        
-        if payment == 0:
-            print("No payment received.")
+
+        if payment <= 0:
+            print("Payment must be positive.")
             return
-        
-        new_fines = current_fines - payment
-        patron['fines'] = str(new_fines)
-        try:
-            if float(new_fines) <= 0:
-                patron['overdue_books'] = '{}'
-                patron['days_overdue'] = '0'
-                try:
-                    bb_raw = patron.get('borrowed_books', '{}') or '{}'
-                    borrowed = json.loads(bb_raw) if isinstance(bb_raw, str) and bb_raw else (bb_raw if isinstance(bb_raw, dict) else {})
-                except Exception:
-                    borrowed = {}
 
-                for k in list(overdue_entries.keys()):
-                    if k in borrowed:
-                        del borrowed[k]
-                try:
-                    patron['borrowed_books'] = json.dumps(borrowed)
-                except Exception:
-                    patron['borrowed_books'] = '{}'
+        if payment > current_fines:
+            print("Payment exceeds outstanding fines.")
+            return
 
-                try:
-                    books_path = 'books123.updated.csv'
-                    if os.path.exists(books_path):
-                        with open(books_path, mode='r', encoding='utf-8', newline='') as bfile:
-                            reader = csv.DictReader(bfile)
-                            raw_b_fieldnames = reader.fieldnames or []
-                            b_fieldnames = [fn for fn in raw_b_fieldnames if fn and str(fn).strip()]
-                            books_rows = list(reader)
+        patron['fines'] = f"{current_fines - payment:.2f}"
 
-                        changed = False
-                        for entry_key, info in overdue_entries.items():
-                            isbn_key = str(entry_key)
-                            bookid = (info.get('bookID') or '').strip() if isinstance(info, dict) else ''
-                            for row in books_rows:
-                                if (row.get('bookID') or '').strip() == bookid or (row.get('isbn') or '').strip() == isbn_key:
-                                    row['Status'] = 'Available'
-                                    changed = True
+        # ✅ FIXED LINE
+        _fines_collected += payment
 
-                        if changed:
-                            fd3, tmp3 = tempfile.mkstemp(prefix='books_', suffix='.csv', dir='.')
-                            os.close(fd3)
-                            try:
-                                with open(tmp3, mode='w', encoding='utf-8', newline='') as out:
-                                    writer = csv.DictWriter(out, fieldnames=b_fieldnames)
-                                    writer.writeheader()
-                                    sanitized = [{fn: (r.get(fn, '') if r.get(fn) is not None else '') for fn in b_fieldnames} for r in books_rows]
-                                    writer.writerows(sanitized)
-                                shutil.move(tmp3, books_path)
-                            finally:
-                                if os.path.exists(tmp3):
-                                    try: os.remove(tmp3)
-                                    except Exception: pass
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        
-        fd, tmp_path = tempfile.mkstemp(prefix='patrons_', suffix='.csv', dir='.')
+        fd, tmp = tempfile.mkstemp()
         os.close(fd)
-        try:
-            with open(tmp_path, mode='w', newline='', encoding='utf-8') as out:
-                writer = csv.DictWriter(out, fieldnames=fieldnames)
-                writer.writeheader()
-                sanitized_patrons = []
-                for p in patrons:
-                    clean_patron = {fn: (p.get(fn, '') if p.get(fn) is not None else '') for fn in fieldnames}
-                    sanitized_patrons.append(clean_patron)
-                writer.writerows(sanitized_patrons)
-            shutil.move(tmp_path, patron_path)
-        finally:
-            if os.path.exists(tmp_path):
-                try: os.remove(tmp_path)
-                except Exception: pass
-        
-        global fines_collected
-        fines_collected += payment
-        
-        print(f"\n✓ Payment received: ${payment:.2f}")
-        print(f"  Remaining fines: ${new_fines:.2f}")
-        print(f"  Total fines collected today: ${fines_collected:.2f}")
-        try:
-            log_transaction('fine_payment', actor_username=getattr(self, 'username', ''), patron_library_number=library_number, bookID='', amount=payment, note=f"Payment of ${payment:.2f}")
-        except Exception:
-            pass
+        with open(tmp, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(patrons)
+        shutil.move(tmp, patron_path)
+
+        print(f"✓ Payment of ₱{payment:.2f} received successfully.")
+
 
     def view_transactions(self):
         clear_screen()
@@ -1304,32 +1046,60 @@ class Staff(Person):
 
     def report(self):
         generate_library_report()
+    
     @classmethod
     def show_patrons_info(cls):
-        with open('patron1.csv', mode='r', newline='') as file:
-            reader = csv.DictReader(file)
+        import csv, json
+
+        headers = [
+            'Name', 'Age', 'Library no.', 'Fines', 'Days Overdue',
+            'Max Books', 'Max Days', 'Contact', 'Preferences', 'Borrowed Books'
+        ]
+
+        with open('patron1.csv', 'r', encoding='utf-8', newline='') as f:
+            reader = csv.DictReader(f)
             patrons = list(reader)
-            if not patrons:
-                print("No patrons available.")
-                return
 
-            cols = ['name', 'age', 'library_number', 'fines', 'days_overdue', 'max_books_allowed', 'max_days_allowed', 'contact_number', 'book_preferences', 'borrowed_books']
-            headers = ['Name', 'Age', 'Library no.', 'Fines', 'Days Overdue', 'Max Books', 'Max Days', 'Contact', 'Preferences', 'Borrowed Books']
-            widths = []
-            for h, c in zip(headers, cols):
-                w = max(len(h), max((len(str(p.get(c, ''))) for p in patrons), default=0))
-                widths.append(w)
+        rows = []
+        for p in patrons:
+            try:
+                borrowed = json.loads(p.get('borrowed_books') or '{}')
+            except Exception:
+                borrowed = {}
 
-            header_line = '  '.join(h.ljust(w) for h, w in zip(headers, widths))
-            sep_line = '  '.join('-' * w for w in widths)
-            print(header_line)
-            print(sep_line)
+            borrowed_text = "\n".join(
+                f"{bid} - {info.get('title','')}"
+                for bid, info in borrowed.items()
+            )
 
-            for p in patrons:
-                row = []
-                for c, w in zip(cols, widths):
-                    row.append(str(p.get(c, '')).ljust(w))
-                print('  '.join(row))
+            rows.append([
+                p.get('name', ''),
+                p.get('age', ''),
+                p.get('library_number', ''),
+                p.get('fines', ''),
+                p.get('days_overdue', ''),
+                p.get('max_books_allowed', ''),
+                p.get('max_days_allowed', ''),
+                p.get('contact_number', ''),
+                p.get('book_preferences', ''),
+                borrowed_text
+            ])
+
+        widths = [
+            max(len(headers[i]), max((len(line) for r in rows for line in str(r[i]).split("\n")), default=0))
+            for i in range(len(headers))
+        ]
+
+        print("  ".join(headers[i].ljust(widths[i]) for i in range(len(headers))))
+        print("  ".join("-" * widths[i] for i in range(len(headers))))
+
+        for r in rows:
+            lines = [str(c).split("\n") for c in r]
+            for i in range(max(len(l) for l in lines)):
+                print("  ".join((lines[c][i] if i < len(lines[c]) else "").ljust(widths[c])
+                                for c in range(len(headers))))
+            print()
+
 
     def edit_patron_info(self):
         import tempfile, shutil
@@ -1774,18 +1544,50 @@ class Inventory(Reports):
                 f"Books Eligible for Weeding (>10 years): {weeding}\n")
 
 class Circulation(Reports):
-    def __init__(self, transactions=TRANSACTIONS_PATH):
+    def __init__(self, transactions=TRANSACTIONS_PATH, books=BOOKS_PATH):
         super().__init__('Circulation Activity')
         self.transactions = transactions
+        self.books = books
 
     def generate(self):
-        rows = read(self.transactions)
+        import re
         
-        total_checkouts = sum(int(r.get('Checkouts') or 0) for r in rows)
+        global BOOKS_PATH
+        rows = read(BOOKS_PATH)
+        
+        if not rows:
+            return "Circulation Activity:\nTotal Checkouts: 0\nMost Checked Out Book: N/A"
+        
+        total_checkouts = 0
+        safe_rows = []
+        
+        for r in rows:
+            checkout_value = r.get('Checkouts', '0')
+            
+            try:
+                cleaned_value = str(checkout_value).strip()
+                current_checkouts = int(cleaned_value)
+                total_checkouts += current_checkouts
+                
+                r['Checkouts_INT'] = current_checkouts
+                safe_rows.append(r)
+            except ValueError:
+                continue
 
-        most_checked_out = max(rows, key=lambda r: int(r.get('Checkouts') or 0), default=None)
-        most_checked_out_info = (f"Most Checked Out Book: {most_checked_out.get('title', 'N/A')} (Checkouts: {most_checked_out.get('Checkouts', '0')})"
-                                 if most_checked_out else "Most Checked Out Book: N/A")
+        most_checked_out = max(
+            safe_rows, 
+            key=lambda r: r['Checkouts_INT'], 
+            default=None
+        )
+        
+        if most_checked_out:
+            title = most_checked_out.get('title', 'N/A')
+            count = most_checked_out.get('Checkouts', '0')
+            most_checked_out_info = f"Most Checked Out Book: {title} (Checkouts: {count})"
+        else:
+            most_checked_out_info = "Most Checked Out Book: N/A (No valid checkout data)"
+
+
         return (f"Circulation Activity:\n"
                 f"Total Checkouts: {total_checkouts}\n"
                 f"{most_checked_out_info}\n")
