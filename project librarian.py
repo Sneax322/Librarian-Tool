@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 import random
 import csv
 import json
@@ -28,6 +29,11 @@ if not os.path.exists(LIBRARIANS_PATH) or os.path.getsize(LIBRARIANS_PATH) == 0:
     with open(LIBRARIANS_PATH, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['name', 'age', 'username', 'password', 'library_number', 'object'])
+
+
+if not os.path.exists(BOOKS_PATH):
+    print("Install books123.updated.csv in UVLE")
+    sys.exit(1)
 
 _fines_collected = 0.0
 _current_user = None
@@ -110,21 +116,23 @@ def clear_screen():
 
 
 current_user = None
-current_client = None 
+current_client = None
 
 def set_current_user(user):
-    global _current_user
+    global _current_user, current_user
     _current_user = user
+    current_user = user
 
 def get_current_user():
-    return _current_user
+    return current_user if current_user is not None else _current_user
 
 def set_current_client(client):
-    global _current_client
+    global _current_client, current_client
     _current_client = client
+    current_client = client
 
 def get_current_client():
-    return _current_client
+    return current_client if current_client is not None else _current_client
 class Book:
     def __init__(self, title, authors, average_rating, isbn, isbn13, language_code, num_pages, ratings_count, text_reviews_count, publication_date, publisher):
         self._title = title
@@ -211,6 +219,21 @@ def _generate_library_number():
 
 generate_library_number = _generate_library_number
 used_library_numbers = _used_library_numbers
+
+for _p in (PATRONS_PATH, LIBRARIANS_PATH, ASSISTANTS_PATH):
+    try:
+        if os.path.exists(_p) and os.path.getsize(_p) > 0:
+            with open(_p, mode='r', encoding='utf-8', newline='') as _f:
+                _r = csv.DictReader(_f)
+                for _row in _r:
+                    _v = _row.get('library_number')
+                    if _v:
+                        try:
+                            _used_library_numbers.add(int(str(_v).strip()))
+                        except Exception:
+                            pass
+    except Exception:
+        pass
 
 class Person:
     def __init__(self, name, age):
@@ -689,6 +712,20 @@ class Staff(Person):
         shutil.move(tmp, patron_path)
 
         print("✓ Overdue fines calculated.")
+        print()
+        print("Fines summary:")
+        total_outstanding = 0.0
+        for p in patrons:
+            try:
+                fines_amt = float(p.get('fines') or 0.0)
+            except Exception:
+                fines_amt = 0.0
+            name = p.get('name') or 'Unknown'
+            libno = p.get('library_number') or ''
+            print(f" - {name} ({libno}): ₱{fines_amt:.2f}")
+            total_outstanding += fines_amt
+
+        print(f"\nTotal outstanding fines: ₱{total_outstanding:.2f}")
 
             
     def lend_book(self):
@@ -735,8 +772,15 @@ class Staff(Person):
             print("Book not found.")
             return
 
-        if (book.get('Status') or '').lower() == 'checked out':
+        status_lower = (book.get('Status') or '').strip().lower()
+        if status_lower == 'checked out':
             print("Book already checked out.")
+            return
+        if status_lower == 'reserved':
+            print("Book is reserved and cannot be lent.")
+            return
+        if status_lower == 'lost':
+            print("Book is marked lost and cannot be lent.")
             return
 
         today = datetime.date.today()
@@ -770,9 +814,7 @@ class Staff(Person):
             writer.writerows(patrons)
         shutil.move(tmp, patron_path)
 
-        print("✓ Book lent successfully.")
-
-
+        
     def receive_book(self):
         import csv, json, tempfile, shutil, os
 
@@ -911,7 +953,7 @@ class Staff(Person):
     def receive_fines_from_patron(self):
         import csv, tempfile, shutil, os
 
-        global _fines_collected   # ✅ REQUIRED
+        global _fines_collected  
 
         clear_screen()
         print("Receive Fines From Patron")
@@ -954,7 +996,7 @@ class Staff(Person):
 
         patron['fines'] = f"{current_fines - payment:.2f}"
 
-        # ✅ FIXED LINE
+        
         _fines_collected += payment
 
         fd, tmp = tempfile.mkstemp()
@@ -1072,8 +1114,16 @@ class Staff(Person):
                 for bid, info in borrowed.items()
             )
 
+            obj = p.get('object') or ''
+            ptype = ''
+            if obj and '(' in obj:
+                ptype = obj.split('(')[0]
+            elif obj:
+                ptype = obj
+            display_name = f"{p.get('name','')}({ptype})" if ptype else p.get('name','')
+
             rows.append([
-                p.get('name', ''),
+                display_name,
                 p.get('age', ''),
                 p.get('library_number', ''),
                 p.get('fines', ''),
@@ -1231,6 +1281,14 @@ class Staff(Person):
                 except Exception: pass
     
 
+def _input_non_empty(prompt):
+    while True:
+        val = input(prompt).strip()
+        if val:
+            return val
+        print("This field is required. Please enter a value.")
+
+
 class Librarian(Staff):
     def __repr__(self):
         return f'Librarian({self.name}, {self.age}, {self.username})'
@@ -1242,7 +1300,7 @@ class Librarian(Staff):
         print('Since this is your first time, please create a librarian account to get started.')
         print('=' * 40)
         print('')
-        name = input("Enter librarian's name: ")
+        name = _input_non_empty("Enter librarian's name: ")
         while True:
             try:
                 age = int(input("Enter librarian's age: "))
@@ -1254,22 +1312,28 @@ class Librarian(Staff):
                 print("Please enter a valid integer for age.")
 
         while True:
-            username = input("Enter librarian's username: ")
+            username = _input_non_empty("Enter librarian's username: ")
             with open('librarian1.csv', mode='r', newline='') as file:
                 reader = csv.DictReader(file)
                 if any(row['username'] == username for row in reader):
                     print("Username already exists. Please choose a different username.\n")
                 else:
                     break
-        password = input("Enter librarian's password: ")
+        password = _input_non_empty("Enter librarian's password: ")
         new_librarian = Librarian(name, age, username, password)
-        with open('librarian1.csv', mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([name, age, username, password])
+        library_number = generate_library_number()
+        obj = repr(new_librarian)
+        fieldnames = ['name', 'age', 'username', 'password', 'library_number', 'object']
+        needs_header = not os.path.exists('librarian1.csv') or os.path.getsize('librarian1.csv') == 0
+        with open('librarian1.csv', mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            if needs_header:
+                writer.writeheader()
+            writer.writerow({'name': name, 'age': age, 'username': username, 'password': password, 'library_number': library_number, 'object': obj})
     
 
     def add_assistant(self): 
-        name = input("Enter assistant's name: ")
+        name = _input_non_empty("Enter assistant's name: ")
         
         while True:
             try:
@@ -1282,18 +1346,24 @@ class Librarian(Staff):
                 print("Please enter a valid integer for age.")
         
         while True:
-            username = input("Enter assistant's username: ")
+            username = _input_non_empty("Enter assistant's username: ")
             with open('assistant1.csv', mode='r', newline='') as file:
                 reader = csv.DictReader(file)
                 if any(row['username'] == username for row in reader):
                     print("Username already exists. Please choose a different username.\n")
                 else:
                     break
-        password = input("Enter assistant's password: ")
+        password = _input_non_empty("Enter assistant's password: ")
         new_assistant = Assistant(name, age, username, password)
-        with open('assistant1.csv', mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([name, age, username, password])
+        library_number = generate_library_number()
+        obj = repr(new_assistant)
+        fieldnames = ['name', 'age', 'username', 'password', 'library_number', 'object']
+        needs_header = not os.path.exists('assistant1.csv') or os.path.getsize('assistant1.csv') == 0
+        with open('assistant1.csv', mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            if needs_header:
+                writer.writeheader()
+            writer.writerow({'name': name, 'age': age, 'username': username, 'password': password, 'library_number': library_number, 'object': obj})
         
         print(f"Assistant '{username}' has been successfully created.") 
         
@@ -1351,7 +1421,7 @@ class Librarian(Staff):
                 break
          else:
                 print("Invalid choice. Please enter a number between 1 and 4.")
-        name = input("Enter patron's name: ")
+        name = _input_non_empty("Enter patron's name: ")
         while True:
          try:
           age = int(input("Enter patron's age: "))
@@ -1684,12 +1754,17 @@ def login_menu():
     print("3. Exit\n\n")
     print("NOTE: If you are an assistant and do not have an account yet, please contact the librarian to create one for you.")
     while True:
-        choice=input("Enter your choice: ")
-        
+        choice = input("Enter your choice (1-3) ").strip()
+        if not choice:
+            continue
+        if choice.lower() == 'b':
+            clear_screen()
+            starting_point()
+            return
         if choice in ['1', '2', '3']:
             break
         else:
-            print("Invalid choice. Please enter a number between 1 and 3.")
+            print("Invalid choice. Please enter a number between 1 and 3 or 'B' to go back.")
     while True:
      if choice == '1':
         username = input("Enter your username: ")
@@ -1703,9 +1778,11 @@ def login_menu():
                     
                     librarian_menu()
                     return
-            print("Invalid username or password. Please try again.\n")
-            print('In case you forgot your password, go back to the VIDEO DEMO to retrieve your account(NOTE:This file is strictly for librarian)')
-            enterr=input('\nPress enter to continue\n')
+            retry = input("Invalid username or password. Press Enter to try again or 'B' to go back: \n").strip().lower()
+            if retry == 'b':
+                clear_screen()
+                login_menu()
+                return
             
      elif choice == '2':
         username = input("Enter your username: ")
@@ -1719,9 +1796,11 @@ def login_menu():
                     
                     assistant_menu()
                     return
-            print("Invalid username or password. Please try again.\n")
-            print('In case you forgot your username or password, contact your librarian to retrieve your account')
-            enterr=input('\nPress enter to continue\n')
+            retry = input("Invalid username or password. Press Enter to try again or 'B' to go back: \n").strip().lower()
+            if retry == 'b':
+                clear_screen()
+                login_menu()
+                return
             
      elif choice == '3':
         print("Exiting the system. Goodbye!")
