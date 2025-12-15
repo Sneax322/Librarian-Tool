@@ -770,6 +770,7 @@ class Staff(Person):
             writer.writerows(patrons)
         shutil.move(tmp, patron_path)
 
+        log_transaction("lend", actor_username=current_user.username, patron_library_number=f"{patron['name']} - {patron['library_number']}", bookID=book_id, amount=None, note=f"Lent {book['title']}", path=TRANSACTIONS_PATH)
         print("✓ Book lent successfully.")
 
 
@@ -826,6 +827,8 @@ class Staff(Person):
             writer.writeheader()
             writer.writerows(patrons)
         shutil.move(tmp, patron_path)
+
+        log_transaction("receive", actor_username=current_user.username, patron_library_number=None, bookID=book_id, amount=None, note=f"Returned {book['title']}", path=TRANSACTIONS_PATH)
 
         print("✓ Book returned successfully.")
 
@@ -965,6 +968,7 @@ class Staff(Person):
             writer.writerows(patrons)
         shutil.move(tmp, patron_path)
 
+        log_transaction("fine_payment", actor_username=current_user.username, patron_library_number=f"{patron['name']} - {patron['library_number']}", bookID=None, amount=payment, note="Fine payment received", path=TRANSACTIONS_PATH)
         print(f"✓ Payment of ₱{payment:.2f} received successfully.")
 
 

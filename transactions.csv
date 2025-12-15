@@ -1,10 +1,8 @@
 timestamp,type,actor_username,patron_library_number,bookID,amount,note
-2025-12-13T03:15:17.545378,fine_payment,1,64972,,80.0,Payment of $80.00
-2025-12-13 03:33:11,fine_payment,1,64972,,80.0,Payment of $80.00
-2025-12-13 03:33:26,fine_payment,1,64972,,80.0,Payment of $80.00
-2025-12-13 03:39:44,fine_payment,1,64972,,80.0,Payment of $80.00
-2025-12-13 03:40:19,fine_payment,1,64972,,80.0,Payment of $80.00
-2025-12-13 03:42:45,fine_payment,1,64972,,80.0,Payment of $80.00
-2025-12-13 21:23:03,lend,1,63895,45650,0.0,Lent 'a'
-2025-12-13 21:27:14,lend,1,63895,45649,0.0,Lent '1'
-2025-12-13 21:48:45,receive,1,,45650,0.0,Received return of bookID 45650
+
+2025-12-15 08:29:14,lend,1,hello - 96504,45604,None,Lent Narraciones Extraordinarias
+2025-12-15 08:31:50,receive,1,,21,None,Returned A Short History of Nearly Everything
+2025-12-15 08:32:42,fine_payment,1,hello - 96504,,155.0,Fine payment received
+2025-12-15 08:33:17,receive,1,,45604,None,Returned Narraciones Extraordinarias
+2025-12-15 08:33:56,lend,1,hello - 96504,45604,None,Lent Narraciones Extraordinarias
+2025-12-15 08:40:07,receive,1,,23,None,Returned Bryson's Dictionary of Troublesome Words: A Writer's Guide to Getting It Right

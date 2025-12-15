@@ -11,9 +11,9 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 14,The Hitchhiker's Guide to the Galaxy (Hitchhiker's Guide to the Galaxy  #1),Douglas Adams,4.22,1400052920,9781400052929,eng,215,4930,460,8/3/2004,Crown,Available,0
 16,The Hitchhiker's Guide to the Galaxy (Hitchhiker's Guide to the Galaxy  #1),Douglas Adams/Stephen Fry,4.22,0739322206,9780739322208,eng,6,1266,253,3/23/2005,Random House Audio,Available,0
 18,The Ultimate Hitchhiker's Guide (Hitchhiker's Guide to the Galaxy  #1-5),Douglas Adams,4.38,0517149257,9780517149256,eng,815,2877,195,1/17/1996,Wings Books,Available,0
-21,A Short History of Nearly Everything,Bill Bryson,4.21,076790818X,9780767908184,eng,544,248558,9396,9/14/2004,Broadway Books,Available,0
+21,A Short History of Nearly Everything,Bill Bryson,4.21,076790818X,9780767908184,eng,544,248558,9396,9/14/2004,Broadway Books,Available,1
 22,Bill Bryson's African Diary,Bill Bryson,3.44,0767915062,9780767915069,eng,55,7270,499,12/3/2002,Broadway Books,Available,0
-23,Bryson's Dictionary of Troublesome Words: A Writer's Guide to Getting It Right,Bill Bryson,3.87,0767910435,9780767910439,eng,256,2088,131,9/14/2004,Broadway Books,Available,0
+23,Bryson's Dictionary of Troublesome Words: A Writer's Guide to Getting It Right,Bill Bryson,3.87,0767910435,9780767910439,eng,256,2088,131,9/14/2004,Broadway Books,Available,1
 24,In a Sunburned Country,Bill Bryson,4.07,0767903862,9780767903868,eng,335,72451,4245,5/15/2001,Broadway Books,Available,0
 25,I'm a Stranger Here Myself: Notes on Returning to America After Twenty Years Away,Bill Bryson,3.90,076790382X,9780767903820,eng,304,49240,2211,6/28/2000,Broadway Books,Available,0
 26,The Lost Continent: Travels in Small Town America,Bill Bryson,3.83,0060920084,9780060920081,eng,299,45712,2257,8/28/1990,William Morrow Paperbacks,Available,0
@@ -26,7 +26,7 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 35,The Lord of the Rings (The Lord of the Rings  #1-3),J.R.R. Tolkien/Alan  Lee,4.50,0618260587,9780618260584,en-US,1216,1618,140,10/1/2002,Houghton Mifflin Harcourt,Available,0
 36,The Lord of the Rings: Weapons and Warfare,Chris   Smith/Christopher  Lee/Richard Taylor,4.53,0618391002,9780618391004,eng,218,19822,46,11/5/2003,Houghton Mifflin Harcourt,Available,0
 37,The Lord of the Rings: Complete Visual Companion,Jude Fisher,4.50,0618510826,9780618510825,eng,224,359,6,11/15/2004,Houghton Mifflin Harcourt,Available,0
-45,Agile Web Development with Rails: A Pragmatic Guide,Dave Thomas/David Heinemeier Hansson/Leon Breedt/Mike Clark/Thomas  Fuchs/Andreas  Schwarz,3.84,097669400X,9780976694007,eng,558,1430,59,7/28/2005,Pragmatic Bookshelf,Available,0
+45,Agile Web Development with Rails: A Pragmatic Guide,Dave Thomas/David Heinemeier Hansson/Leon Breedt/Mike Clark/Thomas  Fuchs/Andreas  Schwarz,3.84,097669400X,9780976694007,eng,558,1430,59,7/28/2005,Pragmatic Bookshelf,Available,1
 50,Hatchet (Brian's Saga  #1),Gary Paulsen,3.72,0689840926,9780689840920,eng,208,270244,12017,4/1/2000,Atheneum Books for Young Readers: Richard Jackson Books,Available,0
 51,"Hatchet: A Guide for Using ""Hatchet"" in the Classroom",Donna Ickes/Edward Sciranko/Keith Vasconcelles,4.00,1557344493,9781557344496,eng,48,36,2,8/28/1994,Teacher Created Resources,Available,0
 53,Guts: The True Stories behind Hatchet and the Brian Books,Gary Paulsen,3.88,0385326505,9780385326506,eng,144,2067,334,1/23/2001,Delacorte Press,Available,0
@@ -11112,7 +11112,7 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 45585,Bella y oscura,Rosa Montero,3.66,843221728X,9788432217289,spa,204,293,31,3/1/2006,Planeta Publishing,Available,0
 45592,La tía Julia y el escribidor,Mario Vargas Llosa,3.92,8466302298,9788466302296,spa,566,162,10,3/1/2001,Suma,Available,0
 45595,La Tía Julia y el Escribidor,Mario Vargas Llosa,3.92,8432203238,9788432203237,spa,447,25,4,7/10/1977,Seix Barral,Available,0
-45604,Narraciones Extraordinarias,Edgar Allan Poe,4.13,9583006408,9789583006401,spa,316,36,4,6/1/2004,Panamericana Editorial,Available,0
+45604,Narraciones Extraordinarias,Edgar Allan Poe,4.13,9583006408,9789583006401,spa,316,36,4,6/1/2004,Panamericana Editorial,Checked Out,2
 45607,Las Crónicas de Narnia,C.S. Lewis/Margarita E. Valdes/Gemma Gallart/Pauline Baynes,4.26,0061199001,9780061199004,spa,816,186,11,11/7/2006,HarperCollins Espanol,Available,0
 45615,O Trono de Prata (As Crónicas de Nárnia  #6),C.S. Lewis/Ana Falcão Bastos,3.96,972233168X,9789722331685,por,168,141,10,4/16/2004,Editorial Presença,Available,0
 45616,A Última Batalha (As Crónicas de Nárnia  #7),C.S. Lewis/Pauline Baynes/Ana Falcão Bastos,4.03,9722332201,9789722332200,por,149,211,24,7/17/2004,Editorial Presença,Available,0
@@ -11135,4 +11135,4 @@ bookID,title,authors,average_rating,isbn,isbn13,language_code,num_pages,ratings_
 45649,1,32,0.0,32,32,32,32,32,32,32,32,Checked Out,1
 45650,a,a,0.0,a,a,a,0,0,0,a,a,Available,1
 45651,7,7,7.0,7,7,7,7,7,7,7,7,Available,1
-45652,Most Checked Out Book of All Time,Ako,0.0,123456789,1234567890,en,0,0,0,,,Checked Out,70
+45652,Most Checked Out Book of All Time,Ako,0.0,123456789,1234567890,en,0,0,0,,,Checked Out,73
