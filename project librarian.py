@@ -814,6 +814,8 @@ class Staff(Person):
             writer.writerows(patrons)
         shutil.move(tmp, patron_path)
 
+        log_transaction("lend", actor_username=current_user.username, patron_library_number=f"{patron['name']} - {lib_no}", bookID=book_id, amount=None, note=f"Lent {book['title']}", path=TRANSACTIONS_PATH)
+
         print("✓ Book lent successfully.")
 
 

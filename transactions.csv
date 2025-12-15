@@ -6,3 +6,4 @@ timestamp,type,actor_username,patron_library_number,bookID,amount,note
 2025-12-15 08:33:17,receive,1,,45604,None,Returned Narraciones Extraordinarias
 2025-12-15 08:33:56,lend,1,hello - 96504,45604,None,Lent Narraciones Extraordinarias
 2025-12-15 08:40:07,receive,1,,23,None,Returned Bryson's Dictionary of Troublesome Words: A Writer's Guide to Getting It Right
+2025-12-15 10:11:19,lend,1,96504 - hello,45,None,Lent Agile Web Development with Rails: A Pragmatic Guide
