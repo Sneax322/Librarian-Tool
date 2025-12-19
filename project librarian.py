@@ -1786,8 +1786,9 @@ def login_menu():
     print("Please log in to continue.")
     print("1. Librarian Login")
     print("2. Assistant Login")
-    print("3. Exit\n\n")
-    print(f"{BOLD}NOTE: If you are an assistant and do not have an account yet, please contact the librarian to create one for you.{RESET}")
+    print("3. Exit")
+    print("4. Forgot Password(FOR LIBRARIAN ONLY, REFER TO VIDEO DEMO)\n\n")
+    print(f"{BOLD}NOTE: If you are an assistant and YOU DONT HAVE ACCOUNT OR FORGOT PASSWORD, please contact the librarian.{RESET}")
     while True:
         choice=input(f"{GREEN}Enter your choice (1-3) or 'B' to go back: {RESET}").strip()
         
@@ -1797,10 +1798,10 @@ def login_menu():
             clear_screen()
             starting_point()
             return
-        if choice in ['1', '2', '3']:
+        if choice in ['1', '2', '3','4']:
             break
         else:
-            rprint("Invalid choice. Please enter a number between 1 and 3 or 'B' to go back.")
+            rprint("Invalid choice. Please enter a number between 1 and 4 or 'B' to go back.")
     while True:
      if choice == '1':
         username = input(f"{GREEN}Enter your username: {RESET}")
@@ -1843,6 +1844,24 @@ def login_menu():
      elif choice == '3':
         blprint("Exiting the system. Goodbye!")
         exit()
+     elif choice == '4':
+       sikretong_password="eee111"
+       secret_password=input(f"{GREEN}What's the secret password(REFER TO VIDEO DEMO): {RESET}")
+       if secret_password.lower()==sikretong_password.lower():
+         with open('librarian1.csv', mode='r', newline='') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                oprint(f"{BOLD}The Librarian Username is: {row['username']}; Password is: {row['password']}{RESET}")
+            enter=input(f"{GREEN}\nPress Enter to return to the login menu.{RESET}")
+            clear_screen()
+            login_menu()
+       else:
+            rprint("Incorrect secret password. REFER TO VIDEO DEMO\n")
+            enter=input(f"{GREEN}\nPress Enter to return to the login menu.{RESET}")
+            clear_screen()
+            login_menu()
+        
+
 
 def librarian_menu():
     global current_user, current_client
