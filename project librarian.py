@@ -1855,12 +1855,13 @@ def login_menu():
             enter=input(f"{GREEN}\nPress Enter to return to the login menu.{RESET}")
             clear_screen()
             login_menu()
+            return
        else:
             rprint("Incorrect secret password. REFER TO VIDEO DEMO\n")
             enter=input(f"{GREEN}\nPress Enter to return to the login menu.{RESET}")
             clear_screen()
             login_menu()
-        
+            return
 
 
 def librarian_menu():
