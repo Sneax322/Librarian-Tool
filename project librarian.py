@@ -1179,7 +1179,7 @@ class Staff(Person):
         for r in rows:
             lines = [str(c).split("\n") for c in r]
             for i in range(max(len(l) for l in lines)):
-                bprint("  ".join((lines[c][i] if i < len(lines[c]) else "").ljust(widths[c])
+                print("  ".join((lines[c][i] if i < len(lines[c]) else "").ljust(widths[c])
                                 for c in range(len(headers))))
             print()
 
@@ -1439,12 +1439,13 @@ class Librarian(Staff):
             name_w = max(len('Name'), max((len(str(a.get('name',''))) for a in assistants), default=0))
             age_w = max(len('Age'), max((len(str(a.get('age',''))) for a in assistants), default=0))
             user_w = max(len('Username'), max((len(str(a.get('username',''))) for a in assistants), default=0))
+            pass_w = max(len('Password'), max((len(str(a.get('password',''))) for a in assistants), default=0))
 
-            print(f"{ 'Name'.ljust(name_w) }  { 'Age'.ljust(age_w) }  { 'Username'.ljust(user_w) }")
-            print(f"{ '-'*name_w }  { '-'*age_w }  { '-'*user_w }")
+            bprint(f"{ 'Name'.ljust(name_w) }  { 'Age'.ljust(age_w) }  { 'Username'.ljust(user_w) }  { 'Password'.ljust(pass_w) }")
+            print(f"{ '-'*name_w }  { '-'*age_w }  { '-'*user_w }  { '-'*pass_w }")
 
             for assistant in assistants:
-                print(f"{ str(assistant.get('name','')).ljust(name_w) }  { str(assistant.get('age','')).ljust(age_w) }  { str(assistant.get('username','')).ljust(user_w) }")
+                print(f"{ str(assistant.get('name','')).ljust(name_w) }  { str(assistant.get('age','')).ljust(age_w) }  { str(assistant.get('username','')).ljust(user_w) }  { str(assistant.get('password','')).ljust(pass_w) }")
 
 
     def add_patron(self):
