@@ -1863,18 +1863,17 @@ def librarian_menu():
      print("11. Edit Patron Info")
      print('12. Show transaction history')
      print("13. Calculate Overall Fines")
-     print("14. Delete Own Account")
-     print("15. Generate Report")
-     print('16. Search Books')
-     print("17. Logout")
-     print('18. Change password')
+     print("14. Generate Report")
+     print('15. Search Books')
+     print("16. Logout")
+     print('17. Change password')
      print("0. Exit\n")
      while True:
         next_choice=input(f"{GREEN}Enter your choice: {RESET}")
-        if next_choice.isdigit() and 0 <= int(next_choice) <= 18:
+        if next_choice.isdigit() and 0 <= int(next_choice) <= 17:
             break
         else:
-            rprint("Invalid choice. Please enter a number between 0 and 18.")
+            rprint("Invalid choice. Please enter a number between 0 and 17.")
      if next_choice=='1': 
         clear_screen()
         current_user.add_book()
@@ -1981,32 +1980,23 @@ def librarian_menu():
         continue
      if next_choice=='14':
         clear_screen()
-        current_user.delete_own_account()
-        enter=input(f"{GREEN}\nPress Enter to return to the menu.{RESET}")
-        clear_screen()
-        starting_point()
-        break
-     
-        
-     if next_choice=='15':
-        clear_screen()
         generate_library_report()
         enter=input(f"{GREEN}\nPress Enter to return to the menu.{RESET}")
         clear_screen()
         continue
-     if next_choice=='16':
+     if next_choice=='15':
         clear_screen()
         current_user.search_book()
         clear_screen()
         continue
-     if next_choice=='17':
+     if next_choice=='16':
        clear_screen()
        current_user=None
        clear_screen()
        login_menu()
        break
 
-     if next_choice=='18':
+     if next_choice=='17':
         clear_screen()
         current_user.change_password()
         enter=input(f"{GREEN}\nPress Enter to return to the menu.{RESET}")
@@ -2029,16 +2019,15 @@ def assistant_menu():
      print("3. Lend Book/Receive Book/Edit book status")
      print("4. Show Patron Info")
      print("5. Receive fines from Patron")
-     print("6. Delete Own Account")
-     print("7. Search Books")
-     print("8. Logout")
+     print("6. Search Books")
+     print("7. Logout")
      print("0. Exit\n")
      while True:
       next_choice=input(f"{GREEN}Enter your choice:{RESET} ")
-      if next_choice.isdigit() and 0 <= int(next_choice) <= 8:
+      if next_choice.isdigit() and 0 <= int(next_choice) <= 7:
                 break
       else:
-                rprint("Invalid choice. Please enter a number between 0 and 8.")
+                rprint("Invalid choice. Please enter a number between 0 and 7.")
                 continue
      if next_choice=='1': 
         clear_screen()
@@ -2094,16 +2083,10 @@ def assistant_menu():
         continue
      if next_choice=='6':
         clear_screen()
-        current_user.delete_own_account()
-        enter=input(f"{GREEN}\nPress Enter to return to the menu.{RESET}")
-        clear_screen()
-        continue
-     if next_choice=='7':
-        clear_screen()
         current_user.search_book()
         clear_screen()
         continue
-     if next_choice=='8':
+     if next_choice=='7':
          clear_screen()
          current_user=None
          clear_screen()
