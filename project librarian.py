@@ -482,17 +482,17 @@ class Staff(Person):
                     rprint("At least one of ISBN or ISBN13 must be provided.")
                     continue
 
-                is_duplicate = False
+                parehas = False
                 for b in books:
                     if isbn and b['isbn'] == isbn:
                         rprint("A book with this ISBN already exists.")
-                        is_duplicate = True
+                        parehas = True
                         break
                     if isbn13 and b['isbn13'] == isbn13:
                         rprint("A book with this ISBN13 already exists.")
-                        is_duplicate = True
+                        parehas = True
                         break
-                if is_duplicate:
+                if parehas:
                     continue
                 break
 
@@ -951,18 +951,18 @@ class Staff(Person):
             blprint("Aborted.")
             return
 
-        status_map = {
+        status_of_book = {
             '1': 'Available',
             '2': 'Checked Out',
             '3': 'Reserved',
             '4': 'Lost'
         }
 
-        if choice not in status_map:
+        if choice not in status_of_book:
             rprint("Invalid choice.")
             return
 
-        new_status = status_map[choice]
+        new_status = status_of_book[choice]
 
         book['Status'] = new_status
 
