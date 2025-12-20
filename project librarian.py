@@ -314,7 +314,7 @@ class Staff(Person):
                 input(f"{GREEN}\nPress Enter to return to menu...{RESET}")
                 return
         
-            print("Search by:")
+            bprint("Search by:")
             print("1. Book number")
             print("2. Title")
             print("3. ISBN")
@@ -357,7 +357,7 @@ class Staff(Person):
                     input(f"{GREEN}\nPress Enter to return to menu...{RESET}")
                     return
                 clear_screen()
-                print(share_detail_book(match))
+                bprint(share_detail_book(match))
                 input(f"{GREEN}\n\nPress Enter to return to menu...{RESET}")
                 return
         
@@ -391,7 +391,7 @@ class Staff(Person):
                 page_items = matched[start:end]
         
                 print(f"Showing results {start+1}-{end} of {total} for '{term}' (field: {field})")
-                print("BookID  Title                                             Authors              ISBN          Status       Checkouts")
+                bprint("BookID  Title                                             Authors              ISBN          Status       Checkouts")
                 print("------  " + "-"*48 + "  " + "-"*20 + "  " + "-"*13 + "  " + "-"*12 + "  " + "-"*9)
                 for r in page_items:
                     print(show_the_book(r) + "  " + str(r.get('Checkouts', '')))
@@ -420,7 +420,7 @@ class Staff(Person):
                 chosen = next((m for m in matched if (m.get('bookID') or '').strip() == searcherr), None)
                 if chosen:
                     clear_screen()
-                    print(share_detail_book(chosen))
+                    bprint(share_detail_book(chosen))
                     input(f"{GREEN}\n\nPress Enter to return to results...{RESET}")
                     try:
                         index_selectt = matched.index(chosen)
@@ -437,12 +437,12 @@ class Staff(Person):
         print("Change Password")
         current_password = input(f"{GREEN}Enter current password:{RESET} ")
         if current_password != self.password:
-            print("Incorrect current password.")
+            rprint("Incorrect current password.")
             return
         new_password = input(f"{GREEN}Enter new password:{RESET} ")
         confirm_password = input(f"{GREEN}Confirm new password:{RESET} ")
         if new_password != confirm_password:
-            print("New passwords do not match.")
+            rprint("New passwords do not match.")
             return
 
         path = 'librarian1.csv' if isinstance(self, Librarian) else 'assistant1.csv'
@@ -1790,7 +1790,7 @@ def login_menu():
     print("4. Forgot Password(FOR LIBRARIAN ONLY, REFER TO VIDEO DEMO)\n\n")
     print(f"{BOLD}NOTE: If you are an assistant and YOU DONT HAVE ACCOUNT OR FORGOT PASSWORD, please contact the librarian.{RESET}")
     while True:
-        choice=input(f"{GREEN}Enter your choice (1-3) or 'B' to go back: {RESET}").strip()
+        choice=input(f"{GREEN}Enter your choice (1-3): {RESET}").strip()
         
         if not choice:
             continue
@@ -1816,7 +1816,7 @@ def login_menu():
                     librarian_menu()
                     return
             rprint("Invalid username or password.\n")
-            retry = input(f"{GREEN}Press Enter to try again or 'B' TO GO BACK TO LOGIN CHOICE:{RESET} \n").strip().lower()
+            retry = input(f"{GREEN}{BOLD}PRESS ENTER TO TRY AGAIN OR 'B' TO GO BACK TO LOGIN CHOICE:{RESET} \n").strip().lower()
             if retry == 'b':
                 clear_screen()
                 login_menu()
