@@ -1178,8 +1178,9 @@ class Staff(Person):
             except Exception:
                 borrowed = {}
 
+            
             borrowed_text = "\n".join(
-                f"{bid} - {info.get('title','')}"
+                f"{bid} - {(info.get('title','')[:20] + '...') if len(info.get('title','')) > 20 else info.get('title','')}"
                 for bid, info in borrowed.items()
             )
 
