@@ -803,10 +803,10 @@ class Staff(Person):
             rprint("Book already checked out.")
             return
         if status_lower == 'reserved':
-            print("Book is reserved and cannot be lent.")
+            rprint("Book is reserved and cannot be lent.")
             return
         if status_lower == 'lost':
-            print("Book is marked lost and cannot be lent.")
+            rprint("Book is marked lost and cannot be lent.")
             return
 
         today = datetime.date.today()
