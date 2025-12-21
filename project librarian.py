@@ -59,7 +59,7 @@ if not os.path.exists(LIBRARIANS_PATH) or os.path.getsize(LIBRARIANS_PATH) == 0:
 
 
 if not os.path.exists(BOOKS_PATH):
-    print("Install books123.updated.csv in UVLE")
+    rprint("INSTALL books123.updated.csv FIRST IN UVLE AND OPEN IT IN SAME FOLDER")
     sys.exit(1)
 
 _fines_collected = 0.0
@@ -406,7 +406,7 @@ class Staff(Person):
                     return
                 if loweringg == 'n':
                     if end >= total:
-                        print("No more pages.")
+                        rprint("No more pages.")
                         continue
                     page += 1
                     continue
@@ -1065,6 +1065,29 @@ class Staff(Person):
         except Exception:
             patron_map = {}
 
+        staff_map = {}
+        try:
+            with open('librarian1.csv', mode='r', newline='', encoding='utf-8') as lfile:
+                lreader = csv.DictReader(lfile)
+                for lr in lreader:
+                    username = (lr.get('username') or '').strip()
+                    name = (lr.get('name') or '').strip()
+                    if username and name:
+                        staff_map[username] = {'name': name, 'type': 'librarian'}
+        except Exception:
+            pass
+
+        try:
+            with open('assistant1.csv', mode='r', newline='', encoding='utf-8') as afile:
+                areader = csv.DictReader(afile)
+                for ar in areader:
+                    username = (ar.get('username') or '').strip()
+                    name = (ar.get('name') or '').strip()
+                    if username and name:
+                        staff_map[username] = {'name': name, 'type': 'assistant'}
+        except Exception:
+            pass
+
         cols = [
             ('timestamp', 10),  
             ('type', 12),
@@ -1086,7 +1109,20 @@ class Staff(Person):
                     ts = ts_raw[:10]
 
             ttype = (t.get('type','') or '')
-            actor = (t.get('actor_username','') or '')
+            actor_username = (t.get('actor_username','') or '').strip()
+            
+            if actor_username and actor_username in staff_map:
+                staff_info = staff_map[actor_username]
+                actor_name = staff_info['name']
+                if current_user and current_user.username == actor_username:
+                    actor = f"{actor_name}(You)"
+                elif staff_info['type'] == 'assistant':
+                    actor = f"{actor_name}(Assistant)"
+                else:
+                    actor = f"{actor_name}(Librarian)"
+            else:
+                actor = actor_username or ''
+            
             patron_key = (t.get('patron_library_number','') or '').strip()
             if patron_key and patron_key in patron_map:
                 patron_display = f"{patron_map[patron_key]}({patron_key})"
@@ -1740,7 +1776,7 @@ class Finance(Reports):
                 continue
 
         return (f"Financial Report:\n"
-                f"Total Outstanding Fines: ${total_fines:.2f}\n")
+                f"Total Outstanding Fines: PHP{total_fines:.2f}\n")
 
 def first_menu():
     global current_user
@@ -1790,7 +1826,7 @@ def login_menu():
     print("4. Forgot Password(FOR LIBRARIAN ONLY, REFER TO VIDEO DEMO)\n\n")
     print(f"{BOLD}NOTE: If you are an assistant and YOU DONT HAVE ACCOUNT OR FORGOT PASSWORD, please contact the librarian.{RESET}")
     while True:
-        choice=input(f"{GREEN}Enter your choice (1-3): {RESET}").strip()
+        choice=input(f"{GREEN}Enter your choice (1-4): {RESET}").strip()
         
         if not choice:
             continue
